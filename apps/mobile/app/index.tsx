@@ -1,6 +1,7 @@
 import { useEffect, useState, type ComponentProps } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Platform,
   Pressable,
   SafeAreaView,
@@ -18,6 +19,161 @@ import { useVitaData } from '../src/use-vita-data';
 type ConnectionState = 'checking' | 'connected' | 'unavailable';
 const apiUrl = process.env.EXPO_PUBLIC_API_URL ?? 'http://127.0.0.1:3000';
 const api = new VitaApiClient(apiUrl);
+
+type MuscleRegion = {
+  height: number;
+  left: number;
+  top: number;
+  width: number;
+};
+
+type Exercise = {
+  equipment: string;
+  form: string[];
+  id: string;
+  name: string;
+  primary: string[];
+  regions: MuscleRegion[];
+  secondary: string[];
+  target: string;
+};
+
+const exerciseLibrary: Exercise[] = [
+  {
+    id: 'dumbbell-curl',
+    name: 'Dumbbell bicep curl',
+    target: 'Arms',
+    equipment: 'Dumbbells',
+    primary: ['Biceps brachii'],
+    secondary: ['Brachialis', 'Forearms'],
+    regions: [
+      { left: 23, top: 27, width: 9, height: 14 },
+      { left: 68, top: 27, width: 9, height: 14 },
+    ],
+    form: [
+      'Stand tall with palms facing forward and elbows close to your ribs.',
+      'Curl the weights without letting your elbows drift forward.',
+      'Squeeze at the top, then lower slowly until your arms are long.',
+    ],
+  },
+  {
+    id: 'goblet-squat',
+    name: 'Goblet squat',
+    target: 'Legs',
+    equipment: 'Dumbbell',
+    primary: ['Quadriceps', 'Gluteus maximus'],
+    secondary: ['Adductors', 'Core'],
+    regions: [
+      { left: 36, top: 53, width: 12, height: 20 },
+      { left: 52, top: 53, width: 12, height: 20 },
+    ],
+    form: [
+      'Hold one dumbbell close to your chest and brace your trunk.',
+      'Sit between your hips while keeping knees in line with your toes.',
+      'Drive the floor away and finish tall without leaning back.',
+    ],
+  },
+  {
+    id: 'incline-push-up',
+    name: 'Incline push-up',
+    target: 'Chest',
+    equipment: 'Bench',
+    primary: ['Pectoralis major'],
+    secondary: ['Triceps', 'Front deltoids'],
+    regions: [
+      { left: 36, top: 20, width: 28, height: 13 },
+      { left: 28, top: 20, width: 8, height: 10 },
+      { left: 64, top: 20, width: 8, height: 10 },
+    ],
+    form: [
+      'Place hands just wider than shoulders and make a straight body line.',
+      'Lower your chest toward the support with elbows about 30–45 degrees out.',
+      'Press the support away while keeping ribs and hips stacked.',
+    ],
+  },
+  {
+    id: 'romanian-deadlift',
+    name: 'Romanian deadlift',
+    target: 'Posterior chain',
+    equipment: 'Dumbbells',
+    primary: ['Hamstrings', 'Gluteus maximus'],
+    secondary: ['Spinal erectors', 'Forearms'],
+    regions: [
+      { left: 35, top: 53, width: 13, height: 22 },
+      { left: 52, top: 53, width: 13, height: 22 },
+    ],
+    form: [
+      'Soften your knees, brace, and keep the dumbbells close to your legs.',
+      'Push your hips back while maintaining a long, neutral spine.',
+      'Stop when the hamstrings limit the hinge, then stand by driving hips forward.',
+    ],
+  },
+  {
+    id: 'seated-row',
+    name: 'Seated cable row',
+    target: 'Back',
+    equipment: 'Cable machine',
+    primary: ['Latissimus dorsi', 'Rhomboids'],
+    secondary: ['Rear deltoids', 'Biceps'],
+    regions: [
+      { left: 31, top: 25, width: 14, height: 20 },
+      { left: 55, top: 25, width: 14, height: 20 },
+    ],
+    form: [
+      'Sit tall with ribs stacked over hips and shoulders relaxed.',
+      'Pull elbows toward your back pockets without rocking your torso.',
+      'Pause with shoulder blades together, then reach forward under control.',
+    ],
+  },
+  {
+    id: 'dead-bug',
+    name: 'Dead bug',
+    target: 'Core',
+    equipment: 'Bodyweight',
+    primary: ['Rectus abdominis', 'Transverse abdominis'],
+    secondary: ['Hip flexors'],
+    regions: [{ left: 42, top: 31, width: 16, height: 21 }],
+    form: [
+      'Lie on your back with hips and knees at 90 degrees and arms up.',
+      'Gently press your lower back toward the floor and brace.',
+      'Extend the opposite arm and leg only as far as you can keep your back still.',
+    ],
+  },
+  {
+    id: 'shoulder-press',
+    name: 'Dumbbell shoulder press',
+    target: 'Shoulders',
+    equipment: 'Dumbbells',
+    primary: ['Deltoids'],
+    secondary: ['Triceps', 'Upper chest'],
+    regions: [
+      { left: 27, top: 19, width: 10, height: 12 },
+      { left: 63, top: 19, width: 10, height: 12 },
+    ],
+    form: [
+      'Start with weights around shoulder height and wrists stacked over elbows.',
+      'Brace your trunk and press upward without arching your lower back.',
+      'Finish with arms overhead, then lower smoothly to the start.',
+    ],
+  },
+  {
+    id: 'calf-raise',
+    name: 'Standing calf raise',
+    target: 'Lower legs',
+    equipment: 'Bodyweight or dumbbells',
+    primary: ['Gastrocnemius', 'Soleus'],
+    secondary: ['Foot stabilizers'],
+    regions: [
+      { left: 38, top: 75, width: 9, height: 17 },
+      { left: 53, top: 75, width: 9, height: 17 },
+    ],
+    form: [
+      'Stand tall with weight spread through the balls of both feet.',
+      'Rise as high as possible without rolling your ankles outward.',
+      'Pause briefly, then lower your heels slowly through a comfortable range.',
+    ],
+  },
+];
 
 const tabs: {
   id: TabId;
@@ -240,14 +396,31 @@ function TrainScreen({
   data: ReturnType<typeof useVitaData>['data'];
   setData: ReturnType<typeof useVitaData>['setData'];
 }) {
-  const exercises = [
+  const [exerciseQuery, setExerciseQuery] = useState('');
+  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
+  const workoutExercises = [
     ['Goblet squat', '3 × 8–10', '12 kg'],
     ['Incline push-up', '3 × 8–12', 'Bodyweight'],
     ['Romanian deadlift', '3 × 10', '16 kg'],
     ['Seated cable row', '3 × 10–12', '20 kg'],
     ['Dead bug', '2 × 8 / side', 'Controlled'],
   ];
+  const filteredExercises = exerciseLibrary.filter((exercise) => {
+    const searchValue = exerciseQuery.trim().toLowerCase();
+    return (
+      !searchValue ||
+      exercise.name.toLowerCase().includes(searchValue) ||
+      exercise.target.toLowerCase().includes(searchValue) ||
+      exercise.primary.some((muscle) => muscle.toLowerCase().includes(searchValue))
+    );
+  });
   const totalSets = 14;
+
+  if (selectedExercise) {
+    return (
+      <ExerciseDetail exercise={selectedExercise} onBack={() => setSelectedExercise(null)} />
+    );
+  }
 
   return (
     <View style={styles.screen}>
@@ -255,6 +428,57 @@ function TrainScreen({
       <Text style={styles.pageTitle}>Full-body foundation</Text>
       <Text style={styles.pageSubtitle}>Moderate day · 32 minutes · RPE 7</Text>
 
+      <View style={styles.exerciseSearch}>
+        <MaterialCommunityIcons color="#A78BFA" name="magnify" size={23} />
+        <TextInput
+          accessibilityLabel="Search exercises or muscles"
+          onChangeText={setExerciseQuery}
+          placeholder="Search exercises or muscles"
+          placeholderTextColor="#746D80"
+          style={styles.exerciseSearchInput}
+          value={exerciseQuery}
+        />
+        {!!exerciseQuery && (
+          <Pressable accessibilityLabel="Clear search" onPress={() => setExerciseQuery('')}>
+            <MaterialCommunityIcons color="#918A9E" name="close-circle" size={20} />
+          </Pressable>
+        )}
+      </View>
+
+      <View>
+        <Text style={styles.libraryTitle}>Exercise library</Text>
+        <Text style={styles.librarySubtitle}>
+          {filteredExercises.length} exercises · tap for form and target muscles
+        </Text>
+      </View>
+      <View style={styles.exerciseLibrary}>
+        {filteredExercises.map((exercise) => (
+          <Pressable
+            key={exercise.id}
+            onPress={() => setSelectedExercise(exercise)}
+            style={({ pressed }) => [styles.libraryRow, pressed && styles.libraryRowPressed]}
+          >
+            <View style={styles.libraryIcon}>
+              <MaterialCommunityIcons color="#C4B5FD" name="weight-lifter" size={23} />
+            </View>
+            <View style={styles.exerciseCopy}>
+              <Text style={styles.exerciseName}>{exercise.name}</Text>
+              <Text style={styles.mutedText}>
+                {exercise.target} · {exercise.equipment}
+              </Text>
+            </View>
+            <MaterialCommunityIcons color="#736B80" name="chevron-right" size={25} />
+          </Pressable>
+        ))}
+        {!filteredExercises.length && (
+          <View style={styles.emptySearch}>
+            <Text style={styles.exerciseName}>No matching exercises</Text>
+            <Text style={styles.mutedText}>Try curl, legs, chest, back, or biceps.</Text>
+          </View>
+        )}
+      </View>
+
+      <SectionTitle title="Today’s session" />
       <View style={styles.workoutHeader}>
         <View>
           <Text style={styles.cardEyebrow}>SESSION PROGRESS</Text>
@@ -269,7 +493,7 @@ function TrainScreen({
       <ProgressBar value={data.completedSets / totalSets} color="#8B5CF6" />
 
       <View style={styles.exerciseList}>
-        {exercises.map(([name, prescription, load], index) => (
+        {workoutExercises.map(([name, prescription, load], index) => (
           <View key={name} style={styles.exerciseRow}>
             <View style={styles.exerciseNumber}>
               <Text style={styles.exerciseNumberText}>{index + 1}</Text>
@@ -322,6 +546,97 @@ function TrainScreen({
           <Text style={styles.bodyText}>Nice work. Today’s volume is saved on this device.</Text>
         </View>
       )}
+    </View>
+  );
+}
+
+function ExerciseDetail({
+  exercise,
+  onBack,
+}: {
+  exercise: Exercise;
+  onBack: () => void;
+}) {
+  return (
+    <View style={styles.screen}>
+      <Pressable accessibilityLabel="Back to exercise library" onPress={onBack} style={styles.backButton}>
+        <MaterialCommunityIcons color="#C4B5FD" name="arrow-left" size={21} />
+        <Text style={styles.backButtonText}>Exercise library</Text>
+      </Pressable>
+
+      <View>
+        <Text style={styles.kicker}>{exercise.target.toUpperCase()}</Text>
+        <Text style={styles.pageTitle}>{exercise.name}</Text>
+        <Text style={styles.pageSubtitle}>{exercise.equipment}</Text>
+      </View>
+
+      <View style={styles.anatomyCard}>
+        <View style={styles.anatomyHeader}>
+          <View>
+            <Text style={styles.cardEyebrow}>MUSCLES TARGETED</Text>
+            <Text style={styles.anatomyTitle}>{exercise.primary.join(' · ')}</Text>
+          </View>
+          <View style={styles.primaryLegend}>
+            <View style={styles.legendDot} />
+            <Text style={styles.legendText}>PRIMARY</Text>
+          </View>
+        </View>
+        <View style={styles.anatomyStage}>
+          <Image
+            accessibilityLabel={`Anatomy diagram showing muscles used in ${exercise.name}`}
+            resizeMode="contain"
+            source={require('../assets/anatomy-front.png')}
+            style={styles.anatomyImage}
+          />
+          {exercise.regions.map((region, index) => (
+            <View
+              key={`${exercise.id}-region-${index}`}
+              style={[
+                styles.muscleHighlight,
+                {
+                  height: `${region.height}%`,
+                  left: `${region.left}%`,
+                  top: `${region.top}%`,
+                  width: `${region.width}%`,
+                },
+              ]}
+            />
+          ))}
+        </View>
+        <View style={styles.muscleSummary}>
+          <View style={styles.muscleColumn}>
+            <Text style={styles.muscleLabel}>PRIMARY</Text>
+            <Text style={styles.muscleValue}>{exercise.primary.join(', ')}</Text>
+          </View>
+          <View style={styles.muscleColumn}>
+            <Text style={styles.muscleLabel}>SECONDARY</Text>
+            <Text style={styles.muscleValue}>{exercise.secondary.join(', ')}</Text>
+          </View>
+        </View>
+      </View>
+
+      <SectionTitle title="Correct form" />
+      <View style={styles.formSteps}>
+        {exercise.form.map((step, index) => (
+          <View key={step} style={styles.formStep}>
+            <View style={styles.formStepNumber}>
+              <Text style={styles.formStepNumberText}>{index + 1}</Text>
+            </View>
+            <Text style={styles.formStepText}>{step}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.formTip}>
+        <MaterialCommunityIcons color="#FCA5A5" name="shield-check-outline" size={24} />
+        <View style={styles.exerciseCopy}>
+          <Text style={styles.formTipTitle}>Quality before load</Text>
+          <Text style={styles.formTipText}>
+            Use a weight you can control through the full movement. Stop for sharp or worsening
+            pain.
+          </Text>
+        </View>
+      </View>
     </View>
   );
 }
@@ -909,6 +1224,134 @@ const styles = StyleSheet.create({
   },
   quickIcon: { color: '#A78BFA', fontSize: 20, fontWeight: '700' },
   quickLabel: { color: '#D8D0E5', fontSize: 11, fontWeight: '700', textAlign: 'center' },
+  exerciseSearch: {
+    alignItems: 'center',
+    backgroundColor: '#15111B',
+    borderColor: '#342A42',
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    minHeight: 52,
+    paddingHorizontal: 15,
+  },
+  exerciseSearchInput: { color: '#F2EEF8', flex: 1, fontSize: 14, minHeight: 50 },
+  libraryTitle: { color: '#F2EEF8', fontSize: 19, fontWeight: '800' },
+  librarySubtitle: { color: '#918A9E', fontSize: 11, marginTop: 4 },
+  exerciseLibrary: {
+    backgroundColor: '#15111B',
+    borderColor: '#292133',
+    borderRadius: 20,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  libraryRow: {
+    alignItems: 'center',
+    borderBottomColor: '#2A2431',
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    minHeight: 68,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  libraryRowPressed: { backgroundColor: '#21182F' },
+  libraryIcon: {
+    alignItems: 'center',
+    backgroundColor: '#241B34',
+    borderRadius: 12,
+    height: 42,
+    justifyContent: 'center',
+    width: 42,
+  },
+  emptySearch: { alignItems: 'center', gap: 5, padding: 24 },
+  backButton: {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: '#21182F',
+    borderRadius: 18,
+    flexDirection: 'row',
+    gap: 7,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
+  },
+  backButtonText: { color: '#D8CCEA', fontSize: 12, fontWeight: '800' },
+  anatomyCard: {
+    backgroundColor: '#100D15',
+    borderColor: '#30253D',
+    borderRadius: 24,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  anatomyHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 18,
+  },
+  anatomyTitle: { color: '#F8F6FC', fontSize: 16, fontWeight: '800', marginTop: 5 },
+  primaryLegend: { alignItems: 'center', flexDirection: 'row', gap: 6 },
+  legendDot: { backgroundColor: '#EF4444', borderRadius: 5, height: 10, width: 10 },
+  legendText: { color: '#FCA5A5', fontSize: 8, fontWeight: '900', letterSpacing: 0.8 },
+  anatomyStage: {
+    alignSelf: 'center',
+    height: 440,
+    maxWidth: 300,
+    position: 'relative',
+    width: '82%',
+  },
+  anatomyImage: { height: '100%', width: '100%' },
+  muscleHighlight: {
+    backgroundColor: 'rgba(239, 68, 68, 0.72)',
+    borderColor: '#FCA5A5',
+    borderRadius: 30,
+    borderWidth: 1,
+    position: 'absolute',
+  },
+  muscleSummary: {
+    backgroundColor: '#17121F',
+    borderTopColor: '#30253D',
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    gap: 18,
+    padding: 18,
+  },
+  muscleColumn: { flex: 1, gap: 5 },
+  muscleLabel: { color: '#EF4444', fontSize: 9, fontWeight: '900', letterSpacing: 1 },
+  muscleValue: { color: '#EDE8F4', fontSize: 12, fontWeight: '700', lineHeight: 17 },
+  formSteps: { gap: 11 },
+  formStep: {
+    alignItems: 'flex-start',
+    backgroundColor: '#15111B',
+    borderColor: '#292133',
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 13,
+    padding: 15,
+  },
+  formStepNumber: {
+    alignItems: 'center',
+    backgroundColor: '#7C3AED',
+    borderRadius: 14,
+    height: 28,
+    justifyContent: 'center',
+    width: 28,
+  },
+  formStepNumberText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
+  formStepText: { color: '#D8D0E2', flex: 1, fontSize: 13, lineHeight: 20 },
+  formTip: {
+    alignItems: 'flex-start',
+    backgroundColor: '#251318',
+    borderColor: '#4B2329',
+    borderRadius: 17,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    padding: 15,
+  },
+  formTipTitle: { color: '#FCA5A5', fontSize: 13, fontWeight: '800' },
+  formTipText: { color: '#C8ADB1', fontSize: 11, lineHeight: 17 },
   workoutHeader: { alignItems: 'flex-end', flexDirection: 'row', justifyContent: 'space-between' },
   workoutProgress: { color: '#F2EEF8', fontSize: 20, fontWeight: '800', marginTop: 5 },
   workoutPercent: { color: '#A78BFA', fontSize: 18, fontWeight: '800' },
