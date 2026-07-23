@@ -7,7 +7,10 @@
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "plugins": ["expo-router"],
-    "experiments": { "typedRoutes": true },
+    "experiments": {
+      "typedRoutes": true,
+      "baseUrl": "/vita-"
+    },
     "web": {
       "bundler": "metro",
       "name": "Vita AI",
