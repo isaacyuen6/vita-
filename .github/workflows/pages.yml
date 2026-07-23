@@ -36,7 +36,9 @@ jobs:
           pnpm --filter @vita/mobile typecheck
           pnpm --filter @vita/mobile test
       - name: Build PWA
-        run: pnpm --filter @vita/mobile build
+        run: |
+          pnpm --filter @vita/api-client... build
+          pnpm --filter @vita/mobile build
       - name: Prepare project-site paths
         run: |
           sed -i 's#="/_expo/#="./_expo/#g' apps/mobile/dist/index.html
