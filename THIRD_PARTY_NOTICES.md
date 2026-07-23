@@ -10,8 +10,4 @@ Source: https://github.com/hasaneyldrm/exercises-dataset
 
 The dataset repository's GIF/image media is not included in this app build.
 
-## FreeSVG - Male musculature
-
-The exercise muscle diagram references `Male musculature`, a public-domain image published by OpenClipart on FreeSVG.
-
-Source: https://freesvg.org/male-musculature
+The app-native muscle map is drawn with local UI regions; no third-party muscle-map media is bundled.

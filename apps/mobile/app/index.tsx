@@ -1,7 +1,6 @@
 import { useEffect, useState, type ComponentProps } from 'react';
 import {
   ActivityIndicator,
-  Image,
   Platform,
   Pressable,
   SafeAreaView,
@@ -21,7 +20,6 @@ import { useVitaData } from '../src/use-vita-data';
 type ConnectionState = 'checking' | 'connected' | 'unavailable';
 const apiUrl = process.env.EXPO_PUBLIC_API_URL ?? 'http://127.0.0.1:3000';
 const api = new VitaApiClient(apiUrl);
-const anatomyImageUrl = 'https://freesvg.org/download/61125';
 const searchResultLimit = 8;
 const popularExerciseNames = [
   'Dumbbell Biceps Curl',
@@ -573,30 +571,9 @@ function ExerciseDetail({
             <Text style={styles.legendText}>PRIMARY</Text>
           </View>
         </View>
-        <View style={styles.anatomyStage}>
-          <Image
-            accessibilityLabel={`Anatomy diagram showing muscles used in ${exercise.name}`}
-            resizeMode="contain"
-            source={{ uri: anatomyImageUrl }}
-            style={styles.anatomyImage}
-          />
-          {exercise.regions.map((region, index) => (
-            <View
-              key={`${exercise.id}-region-${index}`}
-              style={[
-                styles.muscleHighlight,
-                {
-                  height: `${region.height}%`,
-                  left: `${region.left}%`,
-                  top: `${region.top}%`,
-                  width: `${region.width}%`,
-                },
-              ]}
-            />
-          ))}
-        </View>
+        <MuscleMap exercise={exercise} />
         <Text style={styles.anatomySource}>
-          Anatomy source: Male musculature by OpenClipart via FreeSVG, public domain.
+          Muscle map uses app-native regions matched from each exercise target muscle.
         </Text>
         <View style={styles.muscleSummary}>
           <View style={styles.muscleColumn}>
@@ -631,6 +608,72 @@ function ExerciseDetail({
             pain, and keep each rep smooth before adding load.
           </Text>
         </View>
+      </View>
+    </View>
+  );
+}
+
+function regionHits(exercise: Exercise, matcher: (region: Exercise['regions'][number]) => boolean) {
+  return exercise.regions.some(matcher);
+}
+
+function MuscleMap({ exercise }: { exercise: Exercise }) {
+  const active = {
+    abs: regionHits(exercise, (region) => region.left >= 40 && region.left <= 48 && region.top >= 30 && region.top <= 42),
+    arms: regionHits(exercise, (region) => region.top >= 25 && region.top <= 42 && (region.left < 34 || region.left > 66)),
+    calves: regionHits(exercise, (region) => region.top >= 74),
+    chest: regionHits(exercise, (region) => region.left >= 33 && region.left <= 37 && region.top >= 20 && region.width >= 25),
+    forearms: regionHits(exercise, (region) => region.top >= 38 && region.top <= 53 && (region.left < 30 || region.left > 70)),
+    lats: regionHits(exercise, (region) => region.top >= 25 && region.top <= 45 && region.width <= 14),
+    legs: regionHits(exercise, (region) => region.top >= 52 && region.top < 74),
+    neck: regionHits(exercise, (region) => region.top < 19),
+    shoulders: regionHits(exercise, (region) => region.top >= 18 && region.top <= 24 && (region.left < 38 || region.left > 62)),
+    traps: regionHits(exercise, (region) => region.top >= 14 && region.top <= 24 && region.width >= 20),
+  };
+  const hot = (isActive: boolean) => [styles.bodyMuscle, isActive && styles.bodyMuscleActive];
+
+  return (
+    <View
+      accessibilityLabel={`Muscle map showing muscles used in ${displayExerciseName(exercise)}`}
+      style={styles.muscleMapStage}
+    >
+      <View style={styles.mapStatLeft}>
+        <Text style={styles.mapStatNumber}>{exercise.form.length}</Text>
+        <Text style={styles.mapStatLabel}>FORM STEPS</Text>
+      </View>
+      <View style={styles.mapStatRight}>
+        <Text style={styles.mapStatNumber}>{Math.max(exercise.primary.length + exercise.secondary.length, 1)}</Text>
+        <Text style={styles.mapStatLabel}>MUSCLE GROUPS</Text>
+      </View>
+
+      <View style={styles.bodyFigure}>
+        <View style={[styles.bodyPart, styles.bodyHead]} />
+        <View style={[styles.bodyPart, styles.bodyNeck, active.neck && styles.bodyPartActive]} />
+        <View style={[styles.bodyPart, styles.bodyTorso]} />
+        <View style={[styles.bodyMuscle, styles.trapGroup, (active.traps || active.neck || active.shoulders || active.lats) && styles.bodyMuscleActive]} />
+        <View style={[styles.bodyMuscle, styles.chestLeft, active.chest && styles.bodyMuscleActive]} />
+        <View style={[styles.bodyMuscle, styles.chestRight, active.chest && styles.bodyMuscleActive]} />
+        <View style={[styles.bodyMuscle, styles.abUpper, active.abs && styles.bodyMuscleActive]} />
+        <View style={[styles.bodyMuscle, styles.abMid, active.abs && styles.bodyMuscleActive]} />
+        <View style={[styles.bodyMuscle, styles.abLower, active.abs && styles.bodyMuscleActive]} />
+        <View style={[styles.bodyMuscle, styles.latLeft, active.lats && styles.bodyMuscleActive]} />
+        <View style={[styles.bodyMuscle, styles.latRight, active.lats && styles.bodyMuscleActive]} />
+        <View style={[styles.bodyPart, styles.shoulderLeft, active.shoulders && styles.bodyPartActive]} />
+        <View style={[styles.bodyPart, styles.shoulderRight, active.shoulders && styles.bodyPartActive]} />
+        <View style={[styles.bodyPart, styles.upperArmLeft, active.arms && styles.bodyPartActive]} />
+        <View style={[styles.bodyPart, styles.upperArmRight, active.arms && styles.bodyPartActive]} />
+        <View style={[styles.bodyPart, styles.forearmLeft, active.forearms && styles.bodyPartActive]} />
+        <View style={[styles.bodyPart, styles.forearmRight, active.forearms && styles.bodyPartActive]} />
+        <View style={[styles.bodyPart, styles.handLeft]} />
+        <View style={[styles.bodyPart, styles.handRight]} />
+        <View style={[styles.bodyPart, styles.hipLeft, active.legs && styles.bodyPartActive]} />
+        <View style={[styles.bodyPart, styles.hipRight, active.legs && styles.bodyPartActive]} />
+        <View style={[styles.bodyPart, styles.quadLeft, active.legs && styles.bodyPartActive]} />
+        <View style={[styles.bodyPart, styles.quadRight, active.legs && styles.bodyPartActive]} />
+        <View style={[styles.bodyPart, styles.lowerLegLeft, (active.legs || active.calves) && styles.bodyPartActive]} />
+        <View style={[styles.bodyPart, styles.lowerLegRight, (active.legs || active.calves) && styles.bodyPartActive]} />
+        <View style={[styles.bodyPart, styles.footLeft]} />
+        <View style={[styles.bodyPart, styles.footRight]} />
       </View>
     </View>
   );
@@ -1299,22 +1342,88 @@ const styles = StyleSheet.create({
   primaryLegend: { alignItems: 'center', flexDirection: 'row', gap: 6 },
   legendDot: { backgroundColor: '#EF4444', borderRadius: 5, height: 10, width: 10 },
   legendText: { color: '#FCA5A5', fontSize: 8, fontWeight: '900', letterSpacing: 0.8 },
-  anatomyStage: {
+  muscleMapStage: {
     alignSelf: 'center',
-    backgroundColor: '#050408',
-    height: 500,
-    maxWidth: 340,
+    backgroundColor: '#151722',
+    borderColor: '#252839',
+    borderRadius: 26,
+    borderWidth: 1,
+    height: 430,
+    marginTop: 4,
+    maxWidth: 300,
+    overflow: 'hidden',
     position: 'relative',
-    width: '86%',
+    width: '78%',
   },
-  anatomyImage: { height: '100%', opacity: 0.92, width: '100%' },
-  muscleHighlight: {
-    backgroundColor: 'rgba(239, 68, 68, 0.68)',
-    borderColor: '#FCA5A5',
-    borderRadius: 999,
+  mapStatLeft: { left: 28, position: 'absolute', top: 32, zIndex: 3 },
+  mapStatRight: { position: 'absolute', right: 26, top: 32, zIndex: 3 },
+  mapStatNumber: { color: '#FFFFFF', fontSize: 24, fontWeight: '900', textAlign: 'center' },
+  mapStatLabel: { color: '#A9A2B7', fontSize: 7, fontWeight: '900', letterSpacing: 0.5, marginTop: 2 },
+  bodyFigure: { alignSelf: 'center', height: 350, marginTop: 58, position: 'relative', width: 220 },
+  bodyPart: { backgroundColor: '#343747', position: 'absolute' },
+  bodyPartActive: {
+    backgroundColor: '#F43F6B',
+    shadowColor: '#F43F6B',
+    shadowOpacity: 0.45,
+    shadowRadius: 10,
+  },
+  bodyMuscle: {
+    backgroundColor: '#4A4D60',
+    borderColor: '#232636',
     borderWidth: 1,
     position: 'absolute',
   },
+  bodyMuscleActive: {
+    backgroundColor: '#EF5C83',
+    borderColor: '#FF7C9D',
+    shadowColor: '#F43F6B',
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+  },
+  bodyHead: { borderRadius: 16, height: 36, left: 92, top: 0, width: 36 },
+  bodyNeck: { borderRadius: 8, height: 18, left: 100, top: 31, width: 20 },
+  bodyTorso: {
+    backgroundColor: '#2E3140',
+    borderBottomLeftRadius: 44,
+    borderBottomRightRadius: 44,
+    borderTopLeftRadius: 34,
+    borderTopRightRadius: 34,
+    height: 142,
+    left: 61,
+    top: 49,
+    width: 98,
+  },
+  trapGroup: {
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
+    height: 40,
+    left: 69,
+    top: 45,
+    width: 82,
+  },
+  chestLeft: { borderRadius: 16, height: 35, left: 69, top: 76, width: 42 },
+  chestRight: { borderRadius: 16, height: 35, left: 109, top: 76, width: 42 },
+  abUpper: { borderRadius: 13, height: 34, left: 88, top: 112, width: 44 },
+  abMid: { borderRadius: 14, height: 34, left: 86, top: 143, width: 48 },
+  abLower: { borderBottomLeftRadius: 22, borderBottomRightRadius: 22, height: 36, left: 88, top: 172, width: 44 },
+  latLeft: { borderRadius: 20, height: 88, left: 53, top: 86, transform: [{ rotate: '13deg' }], width: 30 },
+  latRight: { borderRadius: 20, height: 88, left: 137, top: 86, transform: [{ rotate: '-13deg' }], width: 30 },
+  shoulderLeft: { borderRadius: 18, height: 38, left: 35, top: 77, width: 38 },
+  shoulderRight: { borderRadius: 18, height: 38, left: 147, top: 77, width: 38 },
+  upperArmLeft: { borderRadius: 20, height: 72, left: 22, top: 103, transform: [{ rotate: '13deg' }], width: 30 },
+  upperArmRight: { borderRadius: 20, height: 72, left: 168, top: 103, transform: [{ rotate: '-13deg' }], width: 30 },
+  forearmLeft: { borderRadius: 18, height: 76, left: 11, top: 166, transform: [{ rotate: '16deg' }], width: 24 },
+  forearmRight: { borderRadius: 18, height: 76, left: 185, top: 166, transform: [{ rotate: '-16deg' }], width: 24 },
+  handLeft: { borderRadius: 12, height: 24, left: 5, top: 234, transform: [{ rotate: '20deg' }], width: 22 },
+  handRight: { borderRadius: 12, height: 24, left: 193, top: 234, transform: [{ rotate: '-20deg' }], width: 22 },
+  hipLeft: { borderRadius: 26, height: 50, left: 64, top: 185, transform: [{ rotate: '11deg' }], width: 42 },
+  hipRight: { borderRadius: 26, height: 50, left: 114, top: 185, transform: [{ rotate: '-11deg' }], width: 42 },
+  quadLeft: { borderRadius: 28, height: 96, left: 61, top: 221, transform: [{ rotate: '5deg' }], width: 38 },
+  quadRight: { borderRadius: 28, height: 96, left: 121, top: 221, transform: [{ rotate: '-5deg' }], width: 38 },
+  lowerLegLeft: { borderRadius: 22, height: 76, left: 63, top: 298, transform: [{ rotate: '5deg' }], width: 29 },
+  lowerLegRight: { borderRadius: 22, height: 76, left: 128, top: 298, transform: [{ rotate: '-5deg' }], width: 29 },
+  footLeft: { borderRadius: 16, height: 18, left: 52, top: 372, transform: [{ rotate: '-10deg' }], width: 43 },
+  footRight: { borderRadius: 16, height: 18, left: 125, top: 372, transform: [{ rotate: '10deg' }], width: 43 },
   anatomySource: {
     color: '#8C829A',
     fontSize: 10,
