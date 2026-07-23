@@ -69,7 +69,7 @@ export default function HomeScreen() {
             </View>
             <View accessibilityLabel={`API ${connection}`} style={styles.statusWrap}>
               {connection === 'checking' ? (
-                <ActivityIndicator size="small" color="#16785D" />
+                <ActivityIndicator size="small" color="#A78BFA" />
               ) : (
                 <View
                   style={[
@@ -110,7 +110,7 @@ export default function HomeScreen() {
               {tab === item.id && <View style={styles.activeGlow} />}
               <View style={[styles.tabIconWrap, tab === item.id && styles.tabIconWrapActive]}>
                 <MaterialCommunityIcons
-                  color={tab === item.id ? '#F7FFFB' : '#77817E'}
+                color={tab === item.id ? '#FFFFFF' : '#817A90'}
                   name={tab === item.id ? item.activeIcon : item.icon}
                   size={26}
                 />
@@ -175,14 +175,14 @@ function TodayScreen({
           value={`${calories}`}
           suffix={`/ ${targets.calories}`}
           progress={calories / targets.calories}
-          accent="#E39B42"
+          accent="#C084FC"
         />
         <MetricCard
           label="Protein"
           value={`${protein} g`}
           suffix={`/ ${targets.protein} g`}
           progress={protein / targets.protein}
-          accent="#5E79C8"
+          accent="#8B5CF6"
         />
       </View>
       <View style={styles.twoColumns}>
@@ -191,14 +191,14 @@ function TodayScreen({
           value={`${data.sleepHours} h`}
           suffix="/ 8 h"
           progress={data.sleepHours / 8}
-          accent="#826BB7"
+          accent="#A78BFA"
         />
         <MetricCard
           label="Water"
           value={`${(data.waterMl / 1000).toFixed(1)} L`}
           suffix="/ 2.5 L"
           progress={data.waterMl / targets.waterMl}
-          accent="#3D9CB1"
+          accent="#7C3AED"
         />
       </View>
 
@@ -266,7 +266,7 @@ function TrainScreen({
           {Math.round((data.completedSets / totalSets) * 100)}%
         </Text>
       </View>
-      <ProgressBar value={data.completedSets / totalSets} color="#16785D" />
+      <ProgressBar value={data.completedSets / totalSets} color="#8B5CF6" />
 
       <View style={styles.exerciseList}>
         {exercises.map(([name, prescription, load], index) => (
@@ -386,7 +386,7 @@ function EatScreen({
           <Text style={styles.mutedText}>Target {targets.protein} g</Text>
         </View>
       </View>
-      <ProgressBar value={calories / targets.calories} color="#E39B42" />
+      <ProgressBar value={calories / targets.calories} color="#C084FC" />
 
       <View style={styles.scanCard}>
         <View style={styles.scanIcon}>
@@ -412,7 +412,7 @@ function EatScreen({
             accessibilityLabel="Meal name"
             onChangeText={setMealName}
             placeholder="Meal name"
-            placeholderTextColor="#82908B"
+            placeholderTextColor="#746D80"
             style={styles.input}
             value={mealName}
           />
@@ -422,7 +422,7 @@ function EatScreen({
               keyboardType="numeric"
               onChangeText={setMealCalories}
               placeholder="Calories"
-              placeholderTextColor="#82908B"
+              placeholderTextColor="#746D80"
               style={[styles.input, styles.flexInput]}
               value={mealCalories}
             />
@@ -431,7 +431,7 @@ function EatScreen({
               keyboardType="numeric"
               onChangeText={setMealProtein}
               placeholder="Protein g"
-              placeholderTextColor="#82908B"
+              placeholderTextColor="#746D80"
               style={[styles.input, styles.flexInput]}
               value={mealProtein}
             />
@@ -512,7 +512,7 @@ function ProgressScreen({
           </View>
           <Text style={styles.goalPercent}>42%</Text>
         </View>
-        <ProgressBar value={0.42} color="#16785D" />
+        <ProgressBar value={0.42} color="#8B5CF6" />
         <Text style={styles.mutedText}>
           6 of 12 planned sessions completed · illustrative local goal
         </Text>
@@ -610,7 +610,7 @@ function CoachScreen({ data }: { data: ReturnType<typeof useVitaData>['data'] })
           onChangeText={setInput}
           onSubmitEditing={() => send(input)}
           placeholder="Ask about today’s plan…"
-          placeholderTextColor="#82908B"
+          placeholderTextColor="#746D80"
           style={styles.composerInput}
           value={input}
         />
@@ -740,30 +740,30 @@ const shadow = Platform.select({
   default: { elevation: 2 },
 }) as object;
 const navShadow = Platform.select({
-  web: { boxShadow: '0 18px 45px rgba(8, 24, 19, 0.26)' },
+  web: { boxShadow: '0 18px 48px rgba(0, 0, 0, 0.55)' },
   default: {
     elevation: 16,
-    shadowColor: '#07110E',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 9 },
     shadowOpacity: 0.28,
     shadowRadius: 18,
   },
 }) as object;
 const glowShadow = Platform.select({
-  web: { boxShadow: '0 0 26px rgba(42, 202, 150, 0.42)' },
+  web: { boxShadow: '0 0 30px rgba(139, 92, 246, 0.55)' },
   default: {
     elevation: 8,
-    shadowColor: '#35D09D',
+    shadowColor: '#8B5CF6',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.45,
     shadowRadius: 13,
   },
 }) as object;
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#EDF3EE' },
+  safeArea: { flex: 1, backgroundColor: '#050507' },
   appShell: {
     alignSelf: 'center',
-    backgroundColor: '#F7FAF7',
+    backgroundColor: '#0A080E',
     flex: 1,
     maxWidth: 520,
     overflow: 'hidden',
@@ -777,34 +777,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
     paddingTop: 20,
   },
-  brand: { color: '#0B684F', fontSize: 13, fontWeight: '900', letterSpacing: 2 },
-  date: { color: '#718079', fontSize: 12, marginTop: 3 },
+  brand: { color: '#A78BFA', fontSize: 13, fontWeight: '900', letterSpacing: 2 },
+  date: { color: '#918A9E', fontSize: 12, marginTop: 3 },
   statusWrap: {
     alignItems: 'center',
-    backgroundColor: '#E6EEE9',
+    backgroundColor: '#1B1722',
     borderRadius: 18,
     height: 36,
     justifyContent: 'center',
     width: 36,
   },
   statusDot: { borderRadius: 5, height: 10, width: 10 },
-  statusOnline: { backgroundColor: '#2E9B72' },
+  statusOnline: { backgroundColor: '#A78BFA' },
   statusOffline: { backgroundColor: '#CE654F' },
   screen: { gap: 18, minWidth: 0, padding: 22, width: '100%' },
-  kicker: { color: '#147359', fontSize: 12, fontWeight: '800', letterSpacing: 1.5 },
+  kicker: { color: '#A78BFA', fontSize: 12, fontWeight: '800', letterSpacing: 1.5 },
   pageTitle: {
-    color: '#123C31',
+    color: '#F8F6FC',
     fontSize: 34,
     fontWeight: '800',
     letterSpacing: -1,
     lineHeight: 39,
   },
-  pageSubtitle: { color: '#667871', fontSize: 15, lineHeight: 22, marginTop: -10 },
+  pageSubtitle: { color: '#A39DAD', fontSize: 15, lineHeight: 22, marginTop: -10 },
   heroRow: { alignItems: 'center', flexDirection: 'row', gap: 18 },
   heroCopy: { flex: 1, flexShrink: 1, gap: 7, minWidth: 0 },
   scoreRing: {
     alignItems: 'center',
-    borderColor: '#61A78F',
+    borderColor: '#8B5CF6',
     borderRadius: 46,
     borderWidth: 7,
     height: 92,
@@ -812,25 +812,27 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     width: 92,
   },
-  scoreValue: { color: '#123C31', fontSize: 28, fontWeight: '800' },
-  scoreLabel: { color: '#658079', fontSize: 8, fontWeight: '800', letterSpacing: 1 },
+  scoreValue: { color: '#F8F6FC', fontSize: 28, fontWeight: '800' },
+  scoreLabel: { color: '#A99FC0', fontSize: 8, fontWeight: '800', letterSpacing: 1 },
   priorityCard: {
     ...shadow,
-    backgroundColor: '#123F34',
+    backgroundColor: '#17121F',
+    borderColor: '#2C233A',
+    borderWidth: 1,
     borderRadius: 24,
     flexShrink: 1,
     gap: 12,
     minWidth: 0,
     padding: 22,
   },
-  cardEyebrow: { color: '#749088', fontSize: 10, fontWeight: '900', letterSpacing: 1.2 },
+  cardEyebrow: { color: '#A99FC0', fontSize: 10, fontWeight: '900', letterSpacing: 1.2 },
   darkTitle: { color: '#FFFFFF', fontSize: 21, fontWeight: '800', lineHeight: 27 },
-  darkBody: { color: '#C9D9D3', fontSize: 14, lineHeight: 21 },
-  priorityTitle: { color: '#173F34', fontSize: 21, fontWeight: '800', lineHeight: 27 },
-  bodyText: { color: '#61726B', fontSize: 14, lineHeight: 21 },
+  darkBody: { color: '#C5BDCF', fontSize: 14, lineHeight: 21 },
+  priorityTitle: { color: '#F2EEF8', fontSize: 21, fontWeight: '800', lineHeight: 27 },
+  bodyText: { color: '#AAA2B4', fontSize: 14, lineHeight: 21 },
   primaryButton: {
     alignItems: 'center',
-    backgroundColor: '#16785D',
+    backgroundColor: '#7C3AED',
     borderRadius: 14,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -844,12 +846,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 8,
   },
-  sectionTitle: { color: '#173F34', fontSize: 19, fontWeight: '800' },
-  sectionAction: { color: '#16785D', fontSize: 12, fontWeight: '700' },
+  sectionTitle: { color: '#F2EEF8', fontSize: 19, fontWeight: '800' },
+  sectionAction: { color: '#A78BFA', fontSize: 12, fontWeight: '700' },
   twoColumns: { flexDirection: 'row', gap: 12, minWidth: 0 },
   metricCard: {
     ...shadow,
-    backgroundColor: '#FFF',
+    backgroundColor: '#15111B',
+    borderColor: '#292133',
+    borderWidth: 1,
     borderRadius: 18,
     flex: 1,
     flexShrink: 1,
@@ -857,16 +861,23 @@ const styles = StyleSheet.create({
     minWidth: 0,
     padding: 16,
   },
-  metricLabel: { color: '#677A72', fontSize: 12, fontWeight: '700' },
+  metricLabel: { color: '#A39DAD', fontSize: 12, fontWeight: '700' },
   metricValueRow: { alignItems: 'baseline', flexDirection: 'row' },
-  metricValue: { color: '#173F34', fontSize: 22, fontWeight: '800' },
-  metricSuffix: { color: '#8A9892', fontSize: 10 },
-  progressTrack: { backgroundColor: '#E8EEEA', borderRadius: 4, height: 6, overflow: 'hidden' },
+  metricValue: { color: '#F8F6FC', fontSize: 22, fontWeight: '800' },
+  metricSuffix: { color: '#8E8799', fontSize: 10 },
+  progressTrack: { backgroundColor: '#2A2431', borderRadius: 4, height: 6, overflow: 'hidden' },
   progressFill: { borderRadius: 4, height: 6 },
-  listCard: { ...shadow, backgroundColor: '#FFF', borderRadius: 20, paddingHorizontal: 17 },
+  listCard: {
+    ...shadow,
+    backgroundColor: '#15111B',
+    borderColor: '#292133',
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: 17,
+  },
   priorityRow: {
     alignItems: 'center',
-    borderBottomColor: '#E9EEEB',
+    borderBottomColor: '#2A2431',
     borderBottomWidth: 1,
     flexDirection: 'row',
     gap: 13,
@@ -874,35 +885,44 @@ const styles = StyleSheet.create({
   },
   priorityNumber: {
     alignItems: 'center',
-    backgroundColor: '#E8F1EC',
+    backgroundColor: '#241B34',
     borderRadius: 16,
     height: 32,
     justifyContent: 'center',
     width: 32,
   },
-  priorityNumberText: { color: '#16785D', fontSize: 13, fontWeight: '800' },
-  priorityDone: { backgroundColor: '#16785D' },
+  priorityNumberText: { color: '#B79CFF', fontSize: 13, fontWeight: '800' },
+  priorityDone: { backgroundColor: '#7C3AED' },
   priorityDoneText: { color: '#FFF' },
   noBorder: { borderBottomWidth: 0 },
   quickGrid: { flexDirection: 'row', gap: 10 },
   quickAction: {
     alignItems: 'center',
-    backgroundColor: '#E8F1EC',
+    backgroundColor: '#1D1727',
+    borderColor: '#30263F',
+    borderWidth: 1,
     borderRadius: 16,
     flex: 1,
     gap: 7,
     minHeight: 84,
     justifyContent: 'center',
   },
-  quickIcon: { color: '#16785D', fontSize: 20, fontWeight: '700' },
-  quickLabel: { color: '#31564B', fontSize: 11, fontWeight: '700', textAlign: 'center' },
+  quickIcon: { color: '#A78BFA', fontSize: 20, fontWeight: '700' },
+  quickLabel: { color: '#D8D0E5', fontSize: 11, fontWeight: '700', textAlign: 'center' },
   workoutHeader: { alignItems: 'flex-end', flexDirection: 'row', justifyContent: 'space-between' },
-  workoutProgress: { color: '#173F34', fontSize: 20, fontWeight: '800', marginTop: 5 },
-  workoutPercent: { color: '#16785D', fontSize: 18, fontWeight: '800' },
-  exerciseList: { ...shadow, backgroundColor: '#FFF', borderRadius: 20, paddingHorizontal: 16 },
+  workoutProgress: { color: '#F2EEF8', fontSize: 20, fontWeight: '800', marginTop: 5 },
+  workoutPercent: { color: '#A78BFA', fontSize: 18, fontWeight: '800' },
+  exerciseList: {
+    ...shadow,
+    backgroundColor: '#15111B',
+    borderColor: '#292133',
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+  },
   exerciseRow: {
     alignItems: 'center',
-    borderBottomColor: '#E8EEEA',
+    borderBottomColor: '#2A2431',
     borderBottomWidth: 1,
     flexDirection: 'row',
     gap: 12,
@@ -910,43 +930,47 @@ const styles = StyleSheet.create({
   },
   exerciseNumber: {
     alignItems: 'center',
-    backgroundColor: '#EEF4F0',
+    backgroundColor: '#241B34',
     borderRadius: 10,
     height: 38,
     justifyContent: 'center',
     width: 38,
   },
-  exerciseNumberText: { color: '#16785D', fontWeight: '800' },
+  exerciseNumberText: { color: '#B79CFF', fontWeight: '800' },
   exerciseCopy: { flex: 1, gap: 3 },
-  exerciseName: { color: '#24473D', fontSize: 14, fontWeight: '700' },
-  mutedText: { color: '#82908B', fontSize: 11, lineHeight: 16 },
-  chevron: { color: '#A4AEA9', fontSize: 26 },
+  exerciseName: { color: '#EDE8F4', fontSize: 14, fontWeight: '700' },
+  mutedText: { color: '#918A9E', fontSize: 11, lineHeight: 16 },
+  chevron: { color: '#736B80', fontSize: 26 },
   actionStack: { gap: 12 },
   secondaryButton: {
     alignItems: 'center',
-    borderColor: '#16785D',
+    borderColor: '#8B5CF6',
     borderRadius: 14,
     borderWidth: 1.5,
     justifyContent: 'center',
     minHeight: 48,
   },
-  secondaryButtonText: { color: '#16785D', fontSize: 14, fontWeight: '800' },
-  safetyText: { color: '#82908B', fontSize: 10, lineHeight: 15, textAlign: 'center' },
-  successCard: { backgroundColor: '#DFF0E7', borderRadius: 18, gap: 5, padding: 18 },
-  successTitle: { color: '#146B52', fontSize: 18, fontWeight: '800' },
+  secondaryButtonText: { color: '#B79CFF', fontSize: 14, fontWeight: '800' },
+  safetyText: { color: '#817A8D', fontSize: 10, lineHeight: 15, textAlign: 'center' },
+  successCard: { backgroundColor: '#211832', borderRadius: 18, gap: 5, padding: 18 },
+  successTitle: { color: '#B79CFF', fontSize: 18, fontWeight: '800' },
   nutritionHero: {
     ...shadow,
-    backgroundColor: '#FFF',
+    backgroundColor: '#15111B',
+    borderColor: '#292133',
+    borderWidth: 1,
     borderRadius: 22,
     flexDirection: 'row',
     justifyContent: 'space-between',
     padding: 20,
   },
-  bigMetric: { color: '#173F34', fontSize: 30, fontWeight: '800', marginVertical: 3 },
+  bigMetric: { color: '#F8F6FC', fontSize: 30, fontWeight: '800', marginVertical: 3 },
   macroRight: { alignItems: 'flex-end' },
   scanCard: {
     alignItems: 'center',
-    backgroundColor: '#EBF3EE',
+    backgroundColor: '#1D1727',
+    borderColor: '#30263F',
+    borderWidth: 1,
     borderRadius: 18,
     flexDirection: 'row',
     gap: 12,
@@ -954,7 +978,7 @@ const styles = StyleSheet.create({
   },
   scanIcon: {
     alignItems: 'center',
-    backgroundColor: '#16785D',
+    backgroundColor: '#7C3AED',
     borderRadius: 12,
     height: 44,
     justifyContent: 'center',
@@ -963,19 +987,19 @@ const styles = StyleSheet.create({
   scanIconText: { color: '#FFF', fontSize: 21 },
   scanCopy: { flex: 1 },
   soonPill: {
-    backgroundColor: '#D6E7DE',
+    backgroundColor: '#302148',
     borderRadius: 9,
     paddingHorizontal: 8,
     paddingVertical: 5,
   },
-  soonText: { color: '#16785D', fontSize: 8, fontWeight: '900', letterSpacing: 1 },
-  formCard: { backgroundColor: '#FFF', borderRadius: 18, gap: 11, padding: 15 },
+  soonText: { color: '#C4B5FD', fontSize: 8, fontWeight: '900', letterSpacing: 1 },
+  formCard: { backgroundColor: '#15111B', borderRadius: 18, gap: 11, padding: 15 },
   input: {
-    backgroundColor: '#F1F5F2',
-    borderColor: '#DAE4DE',
+    backgroundColor: '#0F0C14',
+    borderColor: '#342A42',
     borderRadius: 12,
     borderWidth: 1,
-    color: '#173F34',
+    color: '#F2EEF8',
     fontSize: 14,
     minHeight: 46,
     paddingHorizontal: 13,
@@ -983,7 +1007,7 @@ const styles = StyleSheet.create({
   flexInput: { flex: 1 },
   mealRow: {
     alignItems: 'center',
-    borderBottomColor: '#E8EEEA',
+    borderBottomColor: '#2A2431',
     borderBottomWidth: 1,
     flexDirection: 'row',
     gap: 10,
@@ -993,27 +1017,47 @@ const styles = StyleSheet.create({
   deleteText: { color: '#B76A5B', fontSize: 24, padding: 5 },
   waterCard: {
     alignItems: 'center',
-    backgroundColor: '#E5F2F5',
+    backgroundColor: '#181321',
+    borderColor: '#2D2440',
+    borderWidth: 1,
     borderRadius: 18,
     flexDirection: 'row',
     justifyContent: 'space-between',
     padding: 17,
   },
-  waterAdd: { color: '#267D90', fontSize: 13, fontWeight: '800' },
-  goalCard: { ...shadow, backgroundColor: '#FFF', borderRadius: 22, gap: 14, padding: 20 },
+  waterAdd: { color: '#A78BFA', fontSize: 13, fontWeight: '800' },
+  goalCard: {
+    ...shadow,
+    backgroundColor: '#15111B',
+    borderColor: '#292133',
+    borderRadius: 22,
+    borderWidth: 1,
+    gap: 14,
+    padding: 20,
+  },
   goalTop: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  goalPercent: { color: '#16785D', fontSize: 28, fontWeight: '800' },
+  goalPercent: { color: '#A78BFA', fontSize: 28, fontWeight: '800' },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   statCard: {
     ...shadow,
-    backgroundColor: '#FFF',
+    backgroundColor: '#15111B',
+    borderColor: '#292133',
+    borderWidth: 1,
     borderRadius: 18,
     gap: 3,
     padding: 16,
     width: '48%',
   },
-  statValue: { color: '#173F34', fontSize: 25, fontWeight: '800' },
-  chartCard: { ...shadow, backgroundColor: '#FFF', borderRadius: 20, gap: 18, padding: 18 },
+  statValue: { color: '#F8F6FC', fontSize: 25, fontWeight: '800' },
+  chartCard: {
+    ...shadow,
+    backgroundColor: '#15111B',
+    borderColor: '#292133',
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 18,
+    padding: 18,
+  },
   barChart: {
     alignItems: 'flex-end',
     flexDirection: 'row',
@@ -1021,35 +1065,37 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   barColumn: { alignItems: 'center', gap: 7, height: 115, justifyContent: 'flex-end', width: 28 },
-  chartBar: { backgroundColor: '#68A990', borderRadius: 7, width: 18 },
-  chartLabel: { color: '#81908A', fontSize: 10 },
+  chartBar: { backgroundColor: '#8B5CF6', borderRadius: 7, width: 18 },
+  chartLabel: { color: '#918A9E', fontSize: 10 },
   suggestionScroll: { marginHorizontal: -22, paddingHorizontal: 22 },
   suggestion: {
-    backgroundColor: '#E8F1EC',
+    backgroundColor: '#21182F',
+    borderColor: '#352649',
+    borderWidth: 1,
     borderRadius: 18,
     marginRight: 8,
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
-  suggestionText: { color: '#27584A', fontSize: 12, fontWeight: '700' },
+  suggestionText: { color: '#D8CCEA', fontSize: 12, fontWeight: '700' },
   chatArea: { gap: 12 },
   bubble: { borderRadius: 18, gap: 5, maxWidth: '88%', padding: 14 },
-  coachBubble: { alignSelf: 'flex-start', backgroundColor: '#FFF', borderBottomLeftRadius: 5 },
-  userBubble: { alignSelf: 'flex-end', backgroundColor: '#16785D', borderBottomRightRadius: 5 },
-  bubbleLabel: { color: '#16785D', fontSize: 9, fontWeight: '900', letterSpacing: 1 },
-  coachBubbleText: { color: '#34584D', fontSize: 14, lineHeight: 21 },
+  coachBubble: { alignSelf: 'flex-start', backgroundColor: '#17121F', borderBottomLeftRadius: 5 },
+  userBubble: { alignSelf: 'flex-end', backgroundColor: '#7C3AED', borderBottomRightRadius: 5 },
+  bubbleLabel: { color: '#A78BFA', fontSize: 9, fontWeight: '900', letterSpacing: 1 },
+  coachBubbleText: { color: '#D8D0E2', fontSize: 14, lineHeight: 21 },
   userBubbleText: { color: '#FFF', fontSize: 14, lineHeight: 21 },
   composer: {
     alignItems: 'flex-end',
-    backgroundColor: '#FFF',
-    borderColor: '#DFE7E2',
+    backgroundColor: '#15111B',
+    borderColor: '#342A42',
     borderRadius: 20,
     borderWidth: 1,
     flexDirection: 'row',
     padding: 8,
   },
   composerInput: {
-    color: '#173F34',
+    color: '#F2EEF8',
     flex: 1,
     fontSize: 14,
     maxHeight: 100,
@@ -1059,7 +1105,7 @@ const styles = StyleSheet.create({
   },
   sendButton: {
     alignItems: 'center',
-    backgroundColor: '#16785D',
+    backgroundColor: '#7C3AED',
     borderRadius: 18,
     height: 38,
     justifyContent: 'center',
@@ -1070,8 +1116,8 @@ const styles = StyleSheet.create({
     ...navShadow,
     alignItems: 'center',
     alignSelf: 'center',
-    backgroundColor: '#101513',
-    borderColor: '#27302D',
+    backgroundColor: '#0D0A12',
+    borderColor: '#30253D',
     borderRadius: 28,
     borderWidth: 1,
     bottom: 14,
@@ -1097,7 +1143,7 @@ const styles = StyleSheet.create({
   tabButtonPressed: { opacity: 0.72, transform: [{ scale: 0.96 }] },
   activeGlow: {
     ...glowShadow,
-    backgroundColor: 'rgba(30, 136, 104, 0.22)',
+    backgroundColor: 'rgba(124, 58, 237, 0.28)',
     borderRadius: 36,
     height: 72,
     position: 'absolute',
@@ -1111,11 +1157,11 @@ const styles = StyleSheet.create({
     width: 44,
   },
   tabIconWrapActive: {
-    backgroundColor: 'rgba(42, 192, 143, 0.12)',
-    borderColor: 'rgba(111, 236, 192, 0.2)',
+    backgroundColor: 'rgba(139, 92, 246, 0.18)',
+    borderColor: 'rgba(196, 181, 253, 0.24)',
     borderRadius: 15,
     borderWidth: 1,
   },
-  tabLabel: { color: '#7D8985', fontSize: 10, fontWeight: '700' },
+  tabLabel: { color: '#817A90', fontSize: 10, fontWeight: '700' },
   tabActive: { color: '#F4FAF7', fontWeight: '800' },
 });

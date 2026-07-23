@@ -16,8 +16,8 @@
       "name": "Vita AI",
       "shortName": "Vita",
       "lang": "en",
-      "themeColor": "#123F34",
-      "backgroundColor": "#F7FAF7",
+      "themeColor": "#0A080E",
+      "backgroundColor": "#050507",
       "display": "standalone"
     },
     "ios": { "supportsTablet": true, "bundleIdentifier": "com.vitaai.mobile" },

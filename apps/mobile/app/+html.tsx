@@ -7,7 +7,7 @@ export default function Root({ children }: PropsWithChildren) {
       <head>
         <meta charSet="utf-8" />
         <meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport" />
-        <meta content="#123F34" name="theme-color" />
+        <meta content="#0A080E" name="theme-color" />
         <meta content="yes" name="mobile-web-app-capable" />
         <meta content="yes" name="apple-mobile-web-app-capable" />
         <meta content="Vita AI" name="apple-mobile-web-app-title" />
@@ -18,7 +18,7 @@ export default function Root({ children }: PropsWithChildren) {
         <style
           dangerouslySetInnerHTML={{
             __html:
-              'html, body, #root { height: 100%; } body { margin: 0; background: #EDF3EE; } * { box-sizing: border-box; }',
+              'html, body, #root { height: 100%; } body { margin: 0; background: #050507; } * { box-sizing: border-box; }',
           }}
         />
       </head>
