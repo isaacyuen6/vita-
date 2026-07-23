@@ -8,7 +8,8 @@ function loadData(): VitaData {
   if (Platform.OS !== 'web' || typeof window === 'undefined') return initialData;
   try {
     const saved = window.localStorage.getItem(storageKey);
-    return saved === null ? initialData : (JSON.parse(saved) as VitaData);
+    if (saved === null) return initialData;
+    return { ...initialData, ...(JSON.parse(saved) as Partial<VitaData>) };
   } catch {
     return initialData;
   }

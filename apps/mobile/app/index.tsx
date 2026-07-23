@@ -14,7 +14,7 @@ import { VitaApiClient } from '@vita/api-client';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { exerciseLibrary } from '../src/exercise-library';
 import type { Exercise } from '../src/exercise-types';
-import { coachReply, readinessScore, targets, type TabId } from '../src/vita-data';
+import { coachReply, readinessScore, targets, type TabId, type TrainingDay } from '../src/vita-data';
 import { useVitaData } from '../src/use-vita-data';
 
 type ConnectionState = 'checking' | 'connected' | 'unavailable';
@@ -22,31 +22,58 @@ const apiUrl = process.env.EXPO_PUBLIC_API_URL ?? 'http://127.0.0.1:3000';
 const api = new VitaApiClient(apiUrl);
 const searchResultLimit = 8;
 const popularExerciseNames = [
+  'Bench Press',
+  'Barbell Bench Press',
+  'Incline Bench Press',
+  'Barbell Incline Bench Press',
+  'Push-Up',
+  'Incline Push-Up',
+  'Chest Dip',
+  'Shoulder Press',
+  'Dumbbell Seated Shoulder Press',
+  'Dumbbell Shoulder Press',
+  'Lateral Raise',
+  'Dumbbell Lateral Raise',
+  'Triceps Pushdown',
+  'Cable Triceps Pushdown (V-Bar)',
+  'Overhead Triceps Extension',
+  'Dumbbell Seated Triceps Extension',
+  'Pull-Up',
+  'Lat Pulldown',
+  'Cable Bar Lateral Pulldown',
+  'Seated Cable Row',
+  'Cable Seated Row',
+  'Barbell Row',
+  'Barbell Bent Over Row',
   'Dumbbell Biceps Curl',
+  'Dumbbell Curl',
   'Dumbbell Hammer Curl',
   'Dumbbell Incline Curl',
   'Dumbbell Concentration Curl',
   'Barbell Curl',
   'Cable Curl',
-  'Goblet Squat',
+  'Face Pull',
+  'Squat',
   'Barbell Full Squat',
+  'Goblet Squat',
+  'Dumbbell Goblet Squat',
+  'Barbell Full Squat',
+  'Lunge',
+  'Dumbbell Lunge',
   'Dumbbell Single Leg Split Squat',
-  'Split Squats',
   'Bulgarian Split Squat',
-  'Romanian Deadlift',
   'Dumbbell Romanian Deadlift',
+  'Romanian Deadlift',
+  'Deadlift',
+  'Barbell Deadlift',
   'Leg Press',
+  'Lever Alternate Leg Press',
+  'Leg Extension',
   'Lever Leg Extension',
+  'Leg Curl',
   'Lever Lying Leg Curl',
+  'Calf Raise',
   'Bodyweight Standing Calf Raise',
-  'Bench Press',
-  'Push-Up',
-  'Pull-Up',
-  'Lat Pulldown',
-  'Seated Cable Row',
-  'Shoulder Press',
-  'Lateral Raise',
-  'Triceps Pushdown',
 ];
 const noisyExerciseTerms = [
   'stork stance',
@@ -73,6 +100,8 @@ const normalizeSearchText = (value: string) =>
     .trim();
 
 const exerciseAliases: Record<string, string> = {
+  'Bench Press': 'Barbell Bench Press',
+  'Incline Bench Press': 'Barbell Incline Bench Press',
   'Bulgarian Split Squat': 'Dumbbell Single Leg Split Squat',
   'Dumbbell Curl': 'Dumbbell Biceps Curl',
   'Bicep Curl': 'Dumbbell Biceps Curl',
@@ -81,9 +110,17 @@ const exerciseAliases: Record<string, string> = {
   'Triceps Pushdown': 'Cable Pushdown',
   'Goblet Squat': 'Dumbbell Goblet Squat',
   'Romanian Deadlift': 'Dumbbell Romanian Deadlift',
+  'Squat': 'Barbell Full Squat',
+  'Lunge': 'Dumbbell Lunge',
   'Leg Press': 'Lever Alternate Leg Press',
   'Leg Extension': 'Lever Leg Extension',
+  'Calf Raise': 'Bodyweight Standing Calf Raise',
   'Standing Calf Raise': 'Bodyweight Standing Calf Raise',
+  'Barbell Row': 'Barbell Bent Over Row',
+  'Seated Cable Row': 'Cable Seated Row',
+  'Shoulder Press': 'Dumbbell Seated Shoulder Press',
+  'Lateral Raise': 'Dumbbell Lateral Raise',
+  'Overhead Triceps Extension': 'Dumbbell Seated Triceps Extension',
 };
 
 const exerciseSearchTags: Record<string, string> = {
@@ -146,9 +183,8 @@ function scoreExerciseMatch(exercise: Exercise, query: string) {
 function findExerciseMatches(query: string) {
   const trimmedQuery = query.trim();
   if (trimmedQuery.length < 2) return [];
-  const candidates = [...curatedExercises, ...exerciseLibrary];
   const seen = new Set<string>();
-  return candidates
+  return curatedExercises
     .map((exercise) => ({ exercise, score: scoreExerciseMatch(exercise, trimmedQuery) }))
     .filter(({ exercise, score }) => {
       const displayName = displayExerciseName(exercise);
@@ -383,36 +419,75 @@ function TrainScreen({
   setData: ReturnType<typeof useVitaData>['setData'];
 }) {
   const [exerciseQuery, setExerciseQuery] = useState('');
+  const [manualExerciseName, setManualExerciseName] = useState('');
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
-  const workoutExercises = [
-    ['Goblet squat', '3 × 8–10', '12 kg'],
-    ['Incline push-up', '3 × 8–12', 'Bodyweight'],
-    ['Romanian deadlift', '3 × 10', '16 kg'],
-    ['Seated cable row', '3 × 10–12', '20 kg'],
-    ['Dead bug', '2 × 8 / side', 'Controlled'],
-  ];
   const filteredExercises = findExerciseMatches(exerciseQuery);
   const hasExerciseQuery = exerciseQuery.trim().length >= 2;
-  const totalSets = 14;
+  const selectedPlan =
+    data.trainingPlan.find((day) => day.id === data.currentTrainingDay) ?? data.trainingPlan[0];
+  const totalSets = Math.max((selectedPlan?.exercises.length ?? 0) * 3, 1);
+
+  function setTrainingDay(day: TrainingDay) {
+    setData((current) => ({
+      ...current,
+      completedSets: 0,
+      currentTrainingDay: day,
+      workoutCompleted: false,
+    }));
+  }
+
+  function addExerciseToPlan(name: string, load = 'Custom') {
+    const cleanName = name.trim();
+    if (!cleanName || !selectedPlan) return;
+    setData((current) => ({
+      ...current,
+      trainingPlan: current.trainingPlan.map((day) =>
+        day.id === current.currentTrainingDay
+          ? {
+              ...day,
+              exercises: [
+                ...day.exercises,
+                {
+                  id: `${day.id}-${Date.now()}`,
+                  load,
+                  name: cleanName,
+                  prescription: '3 x 8-12',
+                },
+              ],
+            }
+          : day,
+      ),
+    }));
+    setManualExerciseName('');
+  }
+
+  function removeExerciseFromPlan(id: string) {
+    setData((current) => ({
+      ...current,
+      trainingPlan: current.trainingPlan.map((day) =>
+        day.id === current.currentTrainingDay
+          ? { ...day, exercises: day.exercises.filter((exercise) => exercise.id !== id) }
+          : day,
+      ),
+    }));
+  }
 
   if (selectedExercise) {
-    return (
-      <ExerciseDetail exercise={selectedExercise} onBack={() => setSelectedExercise(null)} />
-    );
+    return <ExerciseDetail exercise={selectedExercise} onBack={() => setSelectedExercise(null)} />;
   }
 
   return (
     <View style={styles.screen}>
       <Text style={styles.kicker}>TRAIN</Text>
-      <Text style={styles.pageTitle}>Full-body foundation</Text>
-      <Text style={styles.pageSubtitle}>Moderate day · 32 minutes · RPE 7</Text>
+      <Text style={styles.pageTitle}>{selectedPlan?.label ?? 'Training'} day</Text>
+      <Text style={styles.pageSubtitle}>Build and remember your Push / Pull / Legs plan</Text>
 
       <View style={styles.exerciseSearch}>
         <MaterialCommunityIcons color="#A78BFA" name="magnify" size={23} />
         <TextInput
           accessibilityLabel="Search exercises or muscles"
           onChangeText={setExerciseQuery}
-          placeholder="Search exercises or muscles"
+          placeholder="Search common exercises"
           placeholderTextColor="#746D80"
           style={styles.exerciseSearchInput}
           value={exerciseQuery}
@@ -424,7 +499,90 @@ function TrainScreen({
         )}
       </View>
 
-      <SectionTitle title="Today’s session" />
+      {hasExerciseQuery ? (
+        <>
+          <View>
+            <Text style={styles.libraryTitle}>Top exercise matches</Text>
+            <Text style={styles.librarySubtitle}>
+              Showing common gym exercises for "{exerciseQuery.trim()}"
+            </Text>
+          </View>
+          <View style={styles.exerciseLibrary}>
+            {filteredExercises.map((exercise) => (
+              <Pressable
+                key={exercise.id}
+                onPress={() => addExerciseToPlan(displayExerciseName(exercise), exercise.equipment)}
+                style={({ pressed }) => [styles.libraryRow, pressed && styles.libraryRowPressed]}
+              >
+                <View style={styles.libraryIcon}>
+                  <MaterialCommunityIcons color="#C4B5FD" name="plus" size={23} />
+                </View>
+                <View style={styles.exerciseCopy}>
+                  <Text style={styles.exerciseName}>{displayExerciseName(exercise)}</Text>
+                  <Text style={styles.mutedText}>
+                    {exercise.target} - {exercise.equipment} - tap to add
+                  </Text>
+                </View>
+                <Pressable
+                  accessibilityLabel={`View form for ${displayExerciseName(exercise)}`}
+                  onPress={() => setSelectedExercise(exercise)}
+                  style={styles.iconButton}
+                >
+                  <MaterialCommunityIcons color="#AFA6BC" name="information-outline" size={22} />
+                </Pressable>
+              </Pressable>
+            ))}
+            {!filteredExercises.length && (
+              <View style={styles.emptySearch}>
+                <Text style={styles.exerciseName}>No common match yet</Text>
+                <Text style={styles.mutedText}>
+                  Try bench, row, curl, squat, lunge, leg press, or pulldown.
+                </Text>
+              </View>
+            )}
+          </View>
+        </>
+      ) : (
+        <View style={styles.searchPromptCard}>
+          <MaterialCommunityIcons color="#A78BFA" name="magnify" size={22} />
+          <Text style={styles.searchPromptText}>Search to add common exercises to your plan.</Text>
+        </View>
+      )}
+
+      <SectionTitle title="Today?s session" />
+      <View style={styles.planTabs}>
+        {data.trainingPlan.map((day) => (
+          <Pressable
+            key={day.id}
+            onPress={() => setTrainingDay(day.id)}
+            style={[styles.planTab, data.currentTrainingDay === day.id && styles.planTabActive]}
+          >
+            <Text
+              style={[
+                styles.planTabText,
+                data.currentTrainingDay === day.id && styles.planTabTextActive,
+              ]}
+            >
+              {day.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
+      <View style={styles.manualExerciseCard}>
+        <TextInput
+          accessibilityLabel="Enter exercise name"
+          onChangeText={setManualExerciseName}
+          placeholder="Enter exercise, e.g. Bench Press"
+          placeholderTextColor="#746D80"
+          style={styles.manualExerciseInput}
+          value={manualExerciseName}
+        />
+        <Pressable onPress={() => addExerciseToPlan(manualExerciseName)} style={styles.addExerciseButton}>
+          <MaterialCommunityIcons color="#FFFFFF" name="plus" size={20} />
+        </Pressable>
+      </View>
+
       <View style={styles.workoutHeader}>
         <View>
           <Text style={styles.cardEyebrow}>SESSION PROGRESS</Text>
@@ -439,18 +597,20 @@ function TrainScreen({
       <ProgressBar value={data.completedSets / totalSets} color="#8B5CF6" />
 
       <View style={styles.exerciseList}>
-        {workoutExercises.map(([name, prescription, load], index) => (
-          <View key={name} style={styles.exerciseRow}>
+        {selectedPlan?.exercises.map((exercise, index) => (
+          <View key={exercise.id} style={styles.exerciseRow}>
             <View style={styles.exerciseNumber}>
               <Text style={styles.exerciseNumberText}>{index + 1}</Text>
             </View>
             <View style={styles.exerciseCopy}>
-              <Text style={styles.exerciseName}>{name}</Text>
+              <Text style={styles.exerciseName}>{exercise.name}</Text>
               <Text style={styles.mutedText}>
-                {prescription} · {load}
+                {exercise.prescription} - {exercise.load}
               </Text>
             </View>
-            <Text style={styles.chevron}>›</Text>
+            <Pressable accessibilityLabel={`Remove ${exercise.name}`} onPress={() => removeExerciseFromPlan(exercise.id)}>
+              <MaterialCommunityIcons color="#918A9E" name="close" size={21} />
+            </Pressable>
           </View>
         ))}
       </View>
@@ -479,7 +639,7 @@ function TrainScreen({
             style={styles.primaryButton}
           >
             <Text style={styles.primaryButtonText}>Complete workout</Text>
-            <Text style={styles.primaryButtonText}>✓</Text>
+            <MaterialCommunityIcons color="#FFFFFF" name="check" size={18} />
           </Pressable>
           <Text style={styles.safetyText}>
             Stop if you feel sharp, sudden, severe, or worsening pain. Vita does not diagnose
@@ -489,54 +649,10 @@ function TrainScreen({
       ) : (
         <View style={styles.successCard}>
           <Text style={styles.successTitle}>Workout complete</Text>
-          <Text style={styles.bodyText}>Nice work. Today’s volume is saved on this device.</Text>
+          <Text style={styles.bodyText}>Nice work. Today?s volume is saved on this device.</Text>
         </View>
       )}
-
-
-      {hasExerciseQuery ? (
-        <>
-          <View>
-            <Text style={styles.libraryTitle}>Top exercise matches</Text>
-            <Text style={styles.librarySubtitle}>
-              Showing the best popular matches for "{exerciseQuery.trim()}"
-            </Text>
-          </View>
-          <View style={styles.exerciseLibrary}>
-            {filteredExercises.map((exercise) => (
-              <Pressable
-                key={exercise.id}
-                onPress={() => setSelectedExercise(exercise)}
-                style={({ pressed }) => [styles.libraryRow, pressed && styles.libraryRowPressed]}
-              >
-                <View style={styles.libraryIcon}>
-                  <MaterialCommunityIcons color="#C4B5FD" name="weight-lifter" size={23} />
-                </View>
-                <View style={styles.exerciseCopy}>
-                  <Text style={styles.exerciseName}>{displayExerciseName(exercise)}</Text>
-                  <Text style={styles.mutedText}>
-                    {exercise.target} - {exercise.equipment}
-                  </Text>
-                </View>
-                <MaterialCommunityIcons color="#736B80" name="chevron-right" size={25} />
-              </Pressable>
-            ))}
-            {!filteredExercises.length && (
-              <View style={styles.emptySearch}>
-                <Text style={styles.exerciseName}>No popular match yet</Text>
-                <Text style={styles.mutedText}>
-                  Try dumbbell curl, split squat, legs, chest, back, or biceps.
-                </Text>
-              </View>
-            )}
-          </View>
-        </>
-      ) : (
-        <View style={styles.searchPromptCard}>
-          <MaterialCommunityIcons color="#A78BFA" name="magnify" size={22} />
-          <Text style={styles.searchPromptText}>Search to show popular exercise matches.</Text>
-        </View>
-      )}    </View>
+    </View>
   );
 }
 
@@ -1302,6 +1418,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 42,
   },
+  iconButton: { padding: 6 },
   emptySearch: { alignItems: 'center', gap: 5, padding: 24 },
   searchPromptCard: {
     alignItems: 'center',
@@ -1314,6 +1431,38 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   searchPromptText: { color: '#AFA6BC', flex: 1, fontSize: 12, fontWeight: '700' },
+  planTabs: {
+    backgroundColor: '#15111B',
+    borderColor: '#292133',
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 8,
+    padding: 6,
+  },
+  planTab: { alignItems: 'center', borderRadius: 12, flex: 1, paddingVertical: 10 },
+  planTabActive: { backgroundColor: '#7C3AED' },
+  planTabText: { color: '#AFA6BC', fontSize: 12, fontWeight: '900' },
+  planTabTextActive: { color: '#FFFFFF' },
+  manualExerciseCard: {
+    alignItems: 'center',
+    backgroundColor: '#15111B',
+    borderColor: '#292133',
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    padding: 8,
+  },
+  manualExerciseInput: { color: '#F2EEF8', flex: 1, fontSize: 13, minHeight: 42, paddingHorizontal: 8 },
+  addExerciseButton: {
+    alignItems: 'center',
+    backgroundColor: '#7C3AED',
+    borderRadius: 12,
+    height: 42,
+    justifyContent: 'center',
+    width: 42,
+  },
   backButton: {
     alignItems: 'center',
     alignSelf: 'flex-start',
@@ -1344,23 +1493,23 @@ const styles = StyleSheet.create({
   legendText: { color: '#FCA5A5', fontSize: 8, fontWeight: '900', letterSpacing: 0.8 },
   muscleMapStage: {
     alignSelf: 'center',
-    backgroundColor: '#151722',
-    borderColor: '#252839',
-    borderRadius: 26,
+    backgroundColor: '#151720',
+    borderColor: '#242838',
+    borderRadius: 28,
     borderWidth: 1,
-    height: 430,
+    height: 440,
     marginTop: 4,
-    maxWidth: 300,
+    maxWidth: 292,
     overflow: 'hidden',
     position: 'relative',
-    width: '78%',
+    width: '76%',
   },
   mapStatLeft: { left: 28, position: 'absolute', top: 32, zIndex: 3 },
   mapStatRight: { position: 'absolute', right: 26, top: 32, zIndex: 3 },
   mapStatNumber: { color: '#FFFFFF', fontSize: 24, fontWeight: '900', textAlign: 'center' },
   mapStatLabel: { color: '#A9A2B7', fontSize: 7, fontWeight: '900', letterSpacing: 0.5, marginTop: 2 },
-  bodyFigure: { alignSelf: 'center', height: 350, marginTop: 58, position: 'relative', width: 220 },
-  bodyPart: { backgroundColor: '#343747', position: 'absolute' },
+  bodyFigure: { alignSelf: 'center', height: 360, marginTop: 62, position: 'relative', width: 200 },
+  bodyPart: { backgroundColor: '#3B3E50', position: 'absolute' },
   bodyPartActive: {
     backgroundColor: '#F43F6B',
     shadowColor: '#F43F6B',
@@ -1368,8 +1517,8 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
   },
   bodyMuscle: {
-    backgroundColor: '#4A4D60',
-    borderColor: '#232636',
+    backgroundColor: '#56596C',
+    borderColor: '#242736',
     borderWidth: 1,
     position: 'absolute',
   },
@@ -1380,50 +1529,50 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5,
     shadowRadius: 12,
   },
-  bodyHead: { borderRadius: 16, height: 36, left: 92, top: 0, width: 36 },
-  bodyNeck: { borderRadius: 8, height: 18, left: 100, top: 31, width: 20 },
+  bodyHead: { borderRadius: 18, height: 34, left: 83, top: 0, width: 34 },
+  bodyNeck: { borderRadius: 8, height: 18, left: 91, top: 29, width: 18 },
   bodyTorso: {
-    backgroundColor: '#2E3140',
-    borderBottomLeftRadius: 44,
-    borderBottomRightRadius: 44,
-    borderTopLeftRadius: 34,
-    borderTopRightRadius: 34,
-    height: 142,
-    left: 61,
-    top: 49,
-    width: 98,
+    backgroundColor: '#333647',
+    borderBottomLeftRadius: 42,
+    borderBottomRightRadius: 42,
+    borderTopLeftRadius: 36,
+    borderTopRightRadius: 36,
+    height: 148,
+    left: 54,
+    top: 47,
+    width: 92,
   },
   trapGroup: {
     borderTopLeftRadius: 26,
     borderTopRightRadius: 26,
-    height: 40,
-    left: 69,
-    top: 45,
-    width: 82,
+    height: 38,
+    left: 61,
+    top: 44,
+    width: 78,
   },
-  chestLeft: { borderRadius: 16, height: 35, left: 69, top: 76, width: 42 },
-  chestRight: { borderRadius: 16, height: 35, left: 109, top: 76, width: 42 },
-  abUpper: { borderRadius: 13, height: 34, left: 88, top: 112, width: 44 },
-  abMid: { borderRadius: 14, height: 34, left: 86, top: 143, width: 48 },
-  abLower: { borderBottomLeftRadius: 22, borderBottomRightRadius: 22, height: 36, left: 88, top: 172, width: 44 },
-  latLeft: { borderRadius: 20, height: 88, left: 53, top: 86, transform: [{ rotate: '13deg' }], width: 30 },
-  latRight: { borderRadius: 20, height: 88, left: 137, top: 86, transform: [{ rotate: '-13deg' }], width: 30 },
-  shoulderLeft: { borderRadius: 18, height: 38, left: 35, top: 77, width: 38 },
-  shoulderRight: { borderRadius: 18, height: 38, left: 147, top: 77, width: 38 },
-  upperArmLeft: { borderRadius: 20, height: 72, left: 22, top: 103, transform: [{ rotate: '13deg' }], width: 30 },
-  upperArmRight: { borderRadius: 20, height: 72, left: 168, top: 103, transform: [{ rotate: '-13deg' }], width: 30 },
-  forearmLeft: { borderRadius: 18, height: 76, left: 11, top: 166, transform: [{ rotate: '16deg' }], width: 24 },
-  forearmRight: { borderRadius: 18, height: 76, left: 185, top: 166, transform: [{ rotate: '-16deg' }], width: 24 },
-  handLeft: { borderRadius: 12, height: 24, left: 5, top: 234, transform: [{ rotate: '20deg' }], width: 22 },
-  handRight: { borderRadius: 12, height: 24, left: 193, top: 234, transform: [{ rotate: '-20deg' }], width: 22 },
-  hipLeft: { borderRadius: 26, height: 50, left: 64, top: 185, transform: [{ rotate: '11deg' }], width: 42 },
-  hipRight: { borderRadius: 26, height: 50, left: 114, top: 185, transform: [{ rotate: '-11deg' }], width: 42 },
-  quadLeft: { borderRadius: 28, height: 96, left: 61, top: 221, transform: [{ rotate: '5deg' }], width: 38 },
-  quadRight: { borderRadius: 28, height: 96, left: 121, top: 221, transform: [{ rotate: '-5deg' }], width: 38 },
-  lowerLegLeft: { borderRadius: 22, height: 76, left: 63, top: 298, transform: [{ rotate: '5deg' }], width: 29 },
-  lowerLegRight: { borderRadius: 22, height: 76, left: 128, top: 298, transform: [{ rotate: '-5deg' }], width: 29 },
-  footLeft: { borderRadius: 16, height: 18, left: 52, top: 372, transform: [{ rotate: '-10deg' }], width: 43 },
-  footRight: { borderRadius: 16, height: 18, left: 125, top: 372, transform: [{ rotate: '10deg' }], width: 43 },
+  chestLeft: { borderRadius: 18, height: 38, left: 62, top: 76, width: 39 },
+  chestRight: { borderRadius: 18, height: 38, left: 99, top: 76, width: 39 },
+  abUpper: { borderRadius: 13, height: 30, left: 80, top: 116, width: 40 },
+  abMid: { borderRadius: 13, height: 32, left: 78, top: 145, width: 44 },
+  abLower: { borderBottomLeftRadius: 23, borderBottomRightRadius: 23, height: 36, left: 80, top: 174, width: 40 },
+  latLeft: { borderRadius: 22, height: 92, left: 45, top: 88, transform: [{ rotate: '14deg' }], width: 28 },
+  latRight: { borderRadius: 22, height: 92, left: 127, top: 88, transform: [{ rotate: '-14deg' }], width: 28 },
+  shoulderLeft: { borderRadius: 20, height: 39, left: 31, top: 79, width: 39 },
+  shoulderRight: { borderRadius: 20, height: 39, left: 130, top: 79, width: 39 },
+  upperArmLeft: { borderRadius: 20, height: 76, left: 20, top: 111, transform: [{ rotate: '12deg' }], width: 28 },
+  upperArmRight: { borderRadius: 20, height: 76, left: 152, top: 111, transform: [{ rotate: '-12deg' }], width: 28 },
+  forearmLeft: { borderRadius: 18, height: 78, left: 10, top: 184, transform: [{ rotate: '15deg' }], width: 23 },
+  forearmRight: { borderRadius: 18, height: 78, left: 167, top: 184, transform: [{ rotate: '-15deg' }], width: 23 },
+  handLeft: { borderRadius: 12, height: 24, left: 5, top: 254, transform: [{ rotate: '20deg' }], width: 22 },
+  handRight: { borderRadius: 12, height: 24, left: 173, top: 254, transform: [{ rotate: '-20deg' }], width: 22 },
+  hipLeft: { borderRadius: 28, height: 50, left: 58, top: 194, transform: [{ rotate: '10deg' }], width: 40 },
+  hipRight: { borderRadius: 28, height: 50, left: 102, top: 194, transform: [{ rotate: '-10deg' }], width: 40 },
+  quadLeft: { borderRadius: 27, height: 93, left: 57, top: 238, transform: [{ rotate: '4deg' }], width: 34 },
+  quadRight: { borderRadius: 27, height: 93, left: 109, top: 238, transform: [{ rotate: '-4deg' }], width: 34 },
+  lowerLegLeft: { borderRadius: 22, height: 74, left: 59, top: 316, transform: [{ rotate: '4deg' }], width: 27 },
+  lowerLegRight: { borderRadius: 22, height: 74, left: 114, top: 316, transform: [{ rotate: '-4deg' }], width: 27 },
+  footLeft: { borderRadius: 16, height: 17, left: 48, top: 385, transform: [{ rotate: '-10deg' }], width: 39 },
+  footRight: { borderRadius: 16, height: 17, left: 113, top: 385, transform: [{ rotate: '10deg' }], width: 39 },
   anatomySource: {
     color: '#8C829A',
     fontSize: 10,

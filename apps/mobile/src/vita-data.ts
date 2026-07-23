@@ -8,6 +8,21 @@ export interface Meal {
   time: string;
 }
 
+export type TrainingDay = 'push' | 'pull' | 'legs';
+
+export interface PlannedExercise {
+  id: string;
+  name: string;
+  prescription: string;
+  load: string;
+}
+
+export interface TrainingPlanDay {
+  id: TrainingDay;
+  label: string;
+  exercises: PlannedExercise[];
+}
+
 export interface VitaData {
   workoutCompleted: boolean;
   completedSets: number;
@@ -15,6 +30,8 @@ export interface VitaData {
   sleepQuality: number;
   waterMl: number;
   meals: Meal[];
+  currentTrainingDay: TrainingDay;
+  trainingPlan: TrainingPlanDay[];
 }
 
 export const initialData: VitaData = {
@@ -26,6 +43,36 @@ export const initialData: VitaData = {
   meals: [
     { id: 'breakfast', name: 'Oats, banana & milk', calories: 410, protein: 18, time: '8:10 AM' },
     { id: 'lunch', name: 'Chicken rice', calories: 620, protein: 36, time: '1:05 PM' },
+  ],
+  currentTrainingDay: 'push',
+  trainingPlan: [
+    {
+      id: 'push',
+      label: 'Push',
+      exercises: [
+        { id: 'push-1', name: 'Bench Press', prescription: '3 x 8-10', load: 'Barbell' },
+        { id: 'push-2', name: 'Shoulder Press', prescription: '3 x 8-10', load: 'Dumbbells' },
+        { id: 'push-3', name: 'Triceps Pushdown', prescription: '3 x 10-12', load: 'Cable' },
+      ],
+    },
+    {
+      id: 'pull',
+      label: 'Pull',
+      exercises: [
+        { id: 'pull-1', name: 'Lat Pulldown', prescription: '3 x 8-12', load: 'Cable' },
+        { id: 'pull-2', name: 'Seated Cable Row', prescription: '3 x 10-12', load: 'Cable' },
+        { id: 'pull-3', name: 'Dumbbell Curl', prescription: '3 x 10-12', load: 'Dumbbells' },
+      ],
+    },
+    {
+      id: 'legs',
+      label: 'Legs',
+      exercises: [
+        { id: 'legs-1', name: 'Squat', prescription: '3 x 8-10', load: 'Barbell' },
+        { id: 'legs-2', name: 'Romanian Deadlift', prescription: '3 x 8-10', load: 'Dumbbells' },
+        { id: 'legs-3', name: 'Leg Press', prescription: '3 x 10-12', load: 'Machine' },
+      ],
+    },
   ],
 };
 
