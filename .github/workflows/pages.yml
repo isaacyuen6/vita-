@@ -1,0 +1,54 @@
+name: Deploy Vita PWA to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.15.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Validate
+        run: |
+          pnpm --filter @vita/mobile typecheck
+          pnpm --filter @vita/mobile test
+      - name: Build PWA
+        run: pnpm --filter @vita/mobile build
+      - name: Prepare project-site paths
+        run: |
+          sed -i 's#="/_expo/#="./_expo/#g' apps/mobile/dist/index.html
+          touch apps/mobile/dist/.nojekyll
+      - name: Version the PWA cache
+        run: sed -i "s/__BUILD_VERSION__/${GITHUB_SHA}/g" apps/mobile/dist/sw.js
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/mobile/dist
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

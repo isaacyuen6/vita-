@@ -1,0 +1,7 @@
+node_modules
+dist
+coverage
+.expo
+.edge-headless*
+pnpm-lock.yaml
+Vita_AI_PRODUCT_SPEC.md

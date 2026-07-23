@@ -1,0 +1,11 @@
+packages:
+  - apps/mobile
+  - apps/api
+  - packages/*
+
+allowBuilds:
+  '@scarf/scarf': set this to true or false
+
+onlyBuiltDependencies:
+  - '@nestjs/core'
+  - esbuild

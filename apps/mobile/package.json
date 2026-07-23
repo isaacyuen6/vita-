@@ -1,0 +1,33 @@
+{
+  "name": "@vita/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "dev": "expo start",
+    "build": "expo export --platform web",
+    "lint": "eslint app src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --exclude dist/**"
+  },
+  "dependencies": {
+    "@expo/metro-runtime": "^6.1.2",
+    "@expo/vector-icons": "^15.0.3",
+    "@vita/api-client": "workspace:*",
+    "expo": "~54.0.33",
+    "expo-router": "^6.0.23",
+    "expo-status-bar": "^3.0.8",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-native": "0.81.5",
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-screens": "~4.16.0",
+    "react-native-web": "^0.21.2"
+  },
+  "devDependencies": {
+    "@types/react": "~19.1.10",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}

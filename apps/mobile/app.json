@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "Vita AI",
+    "slug": "vita-ai",
+    "version": "0.1.0",
+    "scheme": "vitaai",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "plugins": ["expo-router"],
+    "experiments": { "typedRoutes": true },
+    "web": {
+      "bundler": "metro",
+      "name": "Vita AI",
+      "shortName": "Vita",
+      "lang": "en",
+      "themeColor": "#123F34",
+      "backgroundColor": "#F7FAF7",
+      "display": "standalone"
+    },
+    "ios": { "supportsTablet": true, "bundleIdentifier": "com.vitaai.mobile" },
+    "android": { "package": "com.vitaai.mobile" }
+  }
+}

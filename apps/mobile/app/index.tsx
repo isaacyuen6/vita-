@@ -1,0 +1,1121 @@
+import { useEffect, useState, type ComponentProps } from 'react';
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { VitaApiClient } from '@vita/api-client';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { coachReply, readinessScore, targets, type TabId } from '../src/vita-data';
+import { useVitaData } from '../src/use-vita-data';
+
+type ConnectionState = 'checking' | 'connected' | 'unavailable';
+const apiUrl = process.env.EXPO_PUBLIC_API_URL ?? 'http://127.0.0.1:3000';
+const api = new VitaApiClient(apiUrl);
+
+const tabs: {
+  id: TabId;
+  label: string;
+  icon: ComponentProps<typeof MaterialCommunityIcons>['name'];
+  activeIcon: ComponentProps<typeof MaterialCommunityIcons>['name'];
+}[] = [
+  { id: 'today', label: 'Today', icon: 'calendar-heart', activeIcon: 'calendar-heart' },
+  { id: 'train', label: 'Train', icon: 'dumbbell', activeIcon: 'weight-lifter' },
+  { id: 'eat', label: 'Nutrition', icon: 'food-apple-outline', activeIcon: 'food-apple' },
+  { id: 'progress', label: 'Progress', icon: 'chart-box-outline', activeIcon: 'chart-box' },
+  {
+    id: 'coach',
+    label: 'Coach',
+    icon: 'account-voice',
+    activeIcon: 'account-heart',
+  },
+];
+
+export default function HomeScreen() {
+  const [tab, setTab] = useState<TabId>('today');
+  const [connection, setConnection] = useState<ConnectionState>('checking');
+  const { data, setData } = useVitaData();
+
+  useEffect(() => {
+    const controller = new AbortController();
+    api
+      .health(controller.signal)
+      .then(() => setConnection('connected'))
+      .catch(() => setConnection('unavailable'));
+    return () => controller.abort();
+  }, []);
+
+  const calories = data.meals.reduce((sum, meal) => sum + meal.calories, 0);
+  const protein = data.meals.reduce((sum, meal) => sum + meal.protein, 0);
+  const score = readinessScore(data);
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.appShell}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.header}>
+            <View>
+              <Text style={styles.brand}>VITA AI</Text>
+              <Text style={styles.date}>Wednesday, 22 July</Text>
+            </View>
+            <View accessibilityLabel={`API ${connection}`} style={styles.statusWrap}>
+              {connection === 'checking' ? (
+                <ActivityIndicator size="small" color="#16785D" />
+              ) : (
+                <View
+                  style={[
+                    styles.statusDot,
+                    connection === 'connected' ? styles.statusOnline : styles.statusOffline,
+                  ]}
+                />
+              )}
+            </View>
+          </View>
+
+          {tab === 'today' && (
+            <TodayScreen
+              calories={calories}
+              protein={protein}
+              score={score}
+              setTab={setTab}
+              data={data}
+            />
+          )}
+          {tab === 'train' && <TrainScreen data={data} setData={setData} />}
+          {tab === 'eat' && (
+            <EatScreen data={data} setData={setData} calories={calories} protein={protein} />
+          )}
+          {tab === 'progress' && <ProgressScreen data={data} score={score} protein={protein} />}
+          {tab === 'coach' && <CoachScreen data={data} />}
+        </ScrollView>
+
+        <View accessibilityRole="tablist" style={styles.tabBar}>
+          {tabs.map((item) => (
+            <Pressable
+              accessibilityRole="tab"
+              accessibilityState={{ selected: tab === item.id }}
+              key={item.id}
+              onPress={() => setTab(item.id)}
+              style={({ pressed }) => [styles.tabButton, pressed && styles.tabButtonPressed]}
+            >
+              {tab === item.id && <View style={styles.activeGlow} />}
+              <View style={[styles.tabIconWrap, tab === item.id && styles.tabIconWrapActive]}>
+                <MaterialCommunityIcons
+                  color={tab === item.id ? '#F7FFFB' : '#77817E'}
+                  name={tab === item.id ? item.activeIcon : item.icon}
+                  size={26}
+                />
+              </View>
+              <Text style={[styles.tabLabel, tab === item.id && styles.tabActive]}>
+                {item.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+function TodayScreen({
+  calories,
+  protein,
+  score,
+  setTab,
+  data,
+}: {
+  calories: number;
+  protein: number;
+  score: number;
+  setTab: (tab: TabId) => void;
+  data: ReturnType<typeof useVitaData>['data'];
+}) {
+  return (
+    <View style={styles.screen}>
+      <View style={styles.heroRow}>
+        <View style={styles.heroCopy}>
+          <Text style={styles.kicker}>GOOD AFTERNOON</Text>
+          <Text style={styles.pageTitle}>Here’s your plan for today.</Text>
+        </View>
+        <ScoreRing score={score} />
+      </View>
+
+      <View style={styles.priorityCard}>
+        <Text style={styles.cardEyebrow}>TODAY’S FOCUS</Text>
+        <Text style={styles.darkTitle}>
+          {score < 65
+            ? 'Build energy, don’t chase fatigue'
+            : 'Full-body strength, controlled effort'}
+        </Text>
+        <Text style={styles.darkBody}>
+          Your sleep was below the 8-hour target. Keep 2–3 reps in reserve and finish with easy
+          mobility.
+        </Text>
+        <Pressable onPress={() => setTab('train')} style={styles.primaryButton}>
+          <Text style={styles.primaryButtonText}>
+            {data.workoutCompleted ? 'View completed workout' : 'Start 32 min workout'}
+          </Text>
+          <Text style={styles.primaryButtonText}>→</Text>
+        </Pressable>
+      </View>
+
+      <SectionTitle title="Daily targets" action="View details" />
+      <View style={styles.twoColumns}>
+        <MetricCard
+          label="Calories"
+          value={`${calories}`}
+          suffix={`/ ${targets.calories}`}
+          progress={calories / targets.calories}
+          accent="#E39B42"
+        />
+        <MetricCard
+          label="Protein"
+          value={`${protein} g`}
+          suffix={`/ ${targets.protein} g`}
+          progress={protein / targets.protein}
+          accent="#5E79C8"
+        />
+      </View>
+      <View style={styles.twoColumns}>
+        <MetricCard
+          label="Sleep"
+          value={`${data.sleepHours} h`}
+          suffix="/ 8 h"
+          progress={data.sleepHours / 8}
+          accent="#826BB7"
+        />
+        <MetricCard
+          label="Water"
+          value={`${(data.waterMl / 1000).toFixed(1)} L`}
+          suffix="/ 2.5 L"
+          progress={data.waterMl / targets.waterMl}
+          accent="#3D9CB1"
+        />
+      </View>
+
+      <SectionTitle title="Three priorities" />
+      <View style={styles.listCard}>
+        <Priority
+          number="1"
+          title="Complete strength session"
+          detail="Moderate effort · 32 minutes"
+          done={data.workoutCompleted}
+        />
+        <Priority
+          number="2"
+          title={`Add ${Math.max(targets.protein - protein, 0)} g protein`}
+          detail="Two protein-rich meals will cover it"
+        />
+        <Priority
+          number="3"
+          title="Wind down by 10:45 PM"
+          detail="A consistent bedtime supports recovery"
+          last
+        />
+      </View>
+
+      <SectionTitle title="Quick actions" />
+      <View style={styles.quickGrid}>
+        <QuickAction icon="＋" label="Log meal" onPress={() => setTab('eat')} />
+        <QuickAction icon="◆" label="Start workout" onPress={() => setTab('train')} />
+        <QuickAction icon="✦" label="Ask coach" onPress={() => setTab('coach')} />
+      </View>
+    </View>
+  );
+}
+
+function TrainScreen({
+  data,
+  setData,
+}: {
+  data: ReturnType<typeof useVitaData>['data'];
+  setData: ReturnType<typeof useVitaData>['setData'];
+}) {
+  const exercises = [
+    ['Goblet squat', '3 × 8–10', '12 kg'],
+    ['Incline push-up', '3 × 8–12', 'Bodyweight'],
+    ['Romanian deadlift', '3 × 10', '16 kg'],
+    ['Seated cable row', '3 × 10–12', '20 kg'],
+    ['Dead bug', '2 × 8 / side', 'Controlled'],
+  ];
+  const totalSets = 14;
+
+  return (
+    <View style={styles.screen}>
+      <Text style={styles.kicker}>TRAIN</Text>
+      <Text style={styles.pageTitle}>Full-body foundation</Text>
+      <Text style={styles.pageSubtitle}>Moderate day · 32 minutes · RPE 7</Text>
+
+      <View style={styles.workoutHeader}>
+        <View>
+          <Text style={styles.cardEyebrow}>SESSION PROGRESS</Text>
+          <Text style={styles.workoutProgress}>
+            {data.completedSets} of {totalSets} sets
+          </Text>
+        </View>
+        <Text style={styles.workoutPercent}>
+          {Math.round((data.completedSets / totalSets) * 100)}%
+        </Text>
+      </View>
+      <ProgressBar value={data.completedSets / totalSets} color="#16785D" />
+
+      <View style={styles.exerciseList}>
+        {exercises.map(([name, prescription, load], index) => (
+          <View key={name} style={styles.exerciseRow}>
+            <View style={styles.exerciseNumber}>
+              <Text style={styles.exerciseNumberText}>{index + 1}</Text>
+            </View>
+            <View style={styles.exerciseCopy}>
+              <Text style={styles.exerciseName}>{name}</Text>
+              <Text style={styles.mutedText}>
+                {prescription} · {load}
+              </Text>
+            </View>
+            <Text style={styles.chevron}>›</Text>
+          </View>
+        ))}
+      </View>
+
+      {!data.workoutCompleted ? (
+        <View style={styles.actionStack}>
+          <Pressable
+            onPress={() =>
+              setData((current) => ({
+                ...current,
+                completedSets: Math.min(current.completedSets + 1, totalSets),
+              }))
+            }
+            style={styles.secondaryButton}
+          >
+            <Text style={styles.secondaryButtonText}>Log completed set</Text>
+          </Pressable>
+          <Pressable
+            onPress={() =>
+              setData((current) => ({
+                ...current,
+                completedSets: totalSets,
+                workoutCompleted: true,
+              }))
+            }
+            style={styles.primaryButton}
+          >
+            <Text style={styles.primaryButtonText}>Complete workout</Text>
+            <Text style={styles.primaryButtonText}>✓</Text>
+          </Pressable>
+          <Text style={styles.safetyText}>
+            Stop if you feel sharp, sudden, severe, or worsening pain. Vita does not diagnose
+            injuries.
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.successCard}>
+          <Text style={styles.successTitle}>Workout complete</Text>
+          <Text style={styles.bodyText}>Nice work. Today’s volume is saved on this device.</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+function EatScreen({
+  data,
+  setData,
+  calories,
+  protein,
+}: {
+  data: ReturnType<typeof useVitaData>['data'];
+  setData: ReturnType<typeof useVitaData>['setData'];
+  calories: number;
+  protein: number;
+}) {
+  const [showForm, setShowForm] = useState(false);
+  const [mealName, setMealName] = useState('');
+  const [mealCalories, setMealCalories] = useState('');
+  const [mealProtein, setMealProtein] = useState('');
+
+  function addMeal() {
+    const parsedCalories = Number(mealCalories);
+    const parsedProtein = Number(mealProtein);
+    if (!mealName.trim() || !Number.isFinite(parsedCalories) || !Number.isFinite(parsedProtein))
+      return;
+    setData((current) => ({
+      ...current,
+      meals: [
+        ...current.meals,
+        {
+          id: `${Date.now()}`,
+          name: mealName.trim(),
+          calories: parsedCalories,
+          protein: parsedProtein,
+          time: 'Just now',
+        },
+      ],
+    }));
+    setMealName('');
+    setMealCalories('');
+    setMealProtein('');
+    setShowForm(false);
+  }
+
+  return (
+    <View style={styles.screen}>
+      <Text style={styles.kicker}>EAT</Text>
+      <Text style={styles.pageTitle}>Fuel your day</Text>
+      <Text style={styles.pageSubtitle}>Estimates stay editable until you confirm them.</Text>
+
+      <View style={styles.nutritionHero}>
+        <View>
+          <Text style={styles.cardEyebrow}>CALORIES</Text>
+          <Text style={styles.bigMetric}>{calories}</Text>
+          <Text style={styles.mutedText}>
+            {Math.max(targets.calories - calories, 0)} kcal remaining
+          </Text>
+        </View>
+        <View style={styles.macroRight}>
+          <Text style={styles.cardEyebrow}>PROTEIN</Text>
+          <Text style={styles.bigMetric}>{protein} g</Text>
+          <Text style={styles.mutedText}>Target {targets.protein} g</Text>
+        </View>
+      </View>
+      <ProgressBar value={calories / targets.calories} color="#E39B42" />
+
+      <View style={styles.scanCard}>
+        <View style={styles.scanIcon}>
+          <Text style={styles.scanIconText}>▣</Text>
+        </View>
+        <View style={styles.scanCopy}>
+          <Text style={styles.exerciseName}>Scan a meal</Text>
+          <Text style={styles.mutedText}>
+            Photo analysis will show ranges and ask you to confirm.
+          </Text>
+        </View>
+        <View style={styles.soonPill}>
+          <Text style={styles.soonText}>SOON</Text>
+        </View>
+      </View>
+
+      <Pressable onPress={() => setShowForm((visible) => !visible)} style={styles.primaryButton}>
+        <Text style={styles.primaryButtonText}>＋ Add meal manually</Text>
+      </Pressable>
+      {showForm && (
+        <View style={styles.formCard}>
+          <TextInput
+            accessibilityLabel="Meal name"
+            onChangeText={setMealName}
+            placeholder="Meal name"
+            placeholderTextColor="#82908B"
+            style={styles.input}
+            value={mealName}
+          />
+          <View style={styles.twoColumns}>
+            <TextInput
+              accessibilityLabel="Calories"
+              keyboardType="numeric"
+              onChangeText={setMealCalories}
+              placeholder="Calories"
+              placeholderTextColor="#82908B"
+              style={[styles.input, styles.flexInput]}
+              value={mealCalories}
+            />
+            <TextInput
+              accessibilityLabel="Protein grams"
+              keyboardType="numeric"
+              onChangeText={setMealProtein}
+              placeholder="Protein g"
+              placeholderTextColor="#82908B"
+              style={[styles.input, styles.flexInput]}
+              value={mealProtein}
+            />
+          </View>
+          <Pressable onPress={addMeal} style={styles.secondaryButton}>
+            <Text style={styles.secondaryButtonText}>Save confirmed meal</Text>
+          </Pressable>
+        </View>
+      )}
+
+      <SectionTitle title="Today’s meals" />
+      <View style={styles.listCard}>
+        {data.meals.map((meal, index) => (
+          <View
+            key={meal.id}
+            style={[styles.mealRow, index === data.meals.length - 1 && styles.noBorder]}
+          >
+            <View style={styles.mealTime}>
+              <Text style={styles.mutedText}>{meal.time}</Text>
+            </View>
+            <View style={styles.exerciseCopy}>
+              <Text style={styles.exerciseName}>{meal.name}</Text>
+              <Text style={styles.mutedText}>
+                {meal.calories} kcal · {meal.protein} g protein
+              </Text>
+            </View>
+            <Pressable
+              accessibilityLabel={`Delete ${meal.name}`}
+              onPress={() =>
+                setData((current) => ({
+                  ...current,
+                  meals: current.meals.filter((item) => item.id !== meal.id),
+                }))
+              }
+            >
+              <Text style={styles.deleteText}>×</Text>
+            </Pressable>
+          </View>
+        ))}
+      </View>
+
+      <Pressable
+        onPress={() => setData((current) => ({ ...current, waterMl: current.waterMl + 250 }))}
+        style={styles.waterCard}
+      >
+        <View>
+          <Text style={styles.exerciseName}>Water</Text>
+          <Text style={styles.mutedText}>
+            {data.waterMl} ml of {targets.waterMl} ml
+          </Text>
+        </View>
+        <Text style={styles.waterAdd}>＋ 250 ml</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function ProgressScreen({
+  data,
+  score,
+  protein,
+}: {
+  data: ReturnType<typeof useVitaData>['data'];
+  score: number;
+  protein: number;
+}) {
+  return (
+    <View style={styles.screen}>
+      <Text style={styles.kicker}>PROGRESS</Text>
+      <Text style={styles.pageTitle}>Small wins add up</Text>
+      <Text style={styles.pageSubtitle}>This week’s summary uses only data you logged.</Text>
+
+      <View style={styles.goalCard}>
+        <View style={styles.goalTop}>
+          <View>
+            <Text style={styles.cardEyebrow}>ACTIVE GOAL</Text>
+            <Text style={styles.priorityTitle}>Build strength & fitness</Text>
+          </View>
+          <Text style={styles.goalPercent}>42%</Text>
+        </View>
+        <ProgressBar value={0.42} color="#16785D" />
+        <Text style={styles.mutedText}>
+          6 of 12 planned sessions completed · illustrative local goal
+        </Text>
+      </View>
+
+      <SectionTitle title="This week" />
+      <View style={styles.statsGrid}>
+        <Stat value={data.workoutCompleted ? '1' : '0'} label="Workouts" trend="of 3 planned" />
+        <Stat value={`${score}%`} label="Readiness" trend="today" />
+        <Stat
+          value={`${Math.round((protein / targets.protein) * 100)}%`}
+          label="Protein"
+          trend="today"
+        />
+        <Stat value={`${data.sleepHours}h`} label="Sleep" trend="last night" />
+      </View>
+
+      <SectionTitle title="Consistency" />
+      <View style={styles.chartCard}>
+        <View style={styles.barChart}>
+          {[62, 76, 45, 82, 68, score, 0].map((height, index) => (
+            <View key={`${height}-${index}`} style={styles.barColumn}>
+              <View style={[styles.chartBar, { height: Math.max(height, 8) }]} />
+              <Text style={styles.chartLabel}>{['M', 'T', 'W', 'T', 'F', 'S', 'S'][index]}</Text>
+            </View>
+          ))}
+        </View>
+        <Text style={styles.bodyText}>
+          Your strongest logged day was Thursday. Missing data is shown as empty, never as a fake
+          score.
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function CoachScreen({ data }: { data: ReturnType<typeof useVitaData>['data'] }) {
+  const [input, setInput] = useState('');
+  const [messages, setMessages] = useState<{ role: 'coach' | 'user'; text: string }[]>([
+    {
+      role: 'coach',
+      text: 'Hi, I’m Vita. I use the information you log to explain practical next steps. What would you like help with?',
+    },
+  ]);
+  const suggestions = ['What should I train today?', 'What can I eat?', 'Why did readiness drop?'];
+
+  function send(text: string) {
+    const clean = text.trim();
+    if (!clean) return;
+    setMessages((current) => [
+      ...current,
+      { role: 'user', text: clean },
+      { role: 'coach', text: coachReply(clean, data) },
+    ]);
+    setInput('');
+  }
+
+  return (
+    <View style={styles.screen}>
+      <Text style={styles.kicker}>COACH</Text>
+      <Text style={styles.pageTitle}>Ask Vita</Text>
+      <Text style={styles.pageSubtitle}>
+        Guidance grounded in your confirmed data—not invented measurements.
+      </Text>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.suggestionScroll}>
+        {suggestions.map((suggestion) => (
+          <Pressable key={suggestion} onPress={() => send(suggestion)} style={styles.suggestion}>
+            <Text style={styles.suggestionText}>{suggestion}</Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+
+      <View style={styles.chatArea}>
+        {messages.map((message, index) => (
+          <View
+            key={`${message.role}-${index}`}
+            style={[
+              styles.bubble,
+              message.role === 'user' ? styles.userBubble : styles.coachBubble,
+            ]}
+          >
+            {message.role === 'coach' && <Text style={styles.bubbleLabel}>VITA</Text>}
+            <Text style={message.role === 'user' ? styles.userBubbleText : styles.coachBubbleText}>
+              {message.text}
+            </Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.composer}>
+        <TextInput
+          accessibilityLabel="Message Vita"
+          multiline
+          onChangeText={setInput}
+          onSubmitEditing={() => send(input)}
+          placeholder="Ask about today’s plan…"
+          placeholderTextColor="#82908B"
+          style={styles.composerInput}
+          value={input}
+        />
+        <Pressable
+          accessibilityLabel="Send message"
+          onPress={() => send(input)}
+          style={styles.sendButton}
+        >
+          <Text style={styles.sendText}>↑</Text>
+        </Pressable>
+      </View>
+      <Text style={styles.safetyText}>
+        Vita is a wellness tool, not a medical professional. For urgent symptoms, seek appropriate
+        medical help.
+      </Text>
+    </View>
+  );
+}
+
+function ScoreRing({ score }: { score: number }) {
+  return (
+    <View style={styles.scoreRing}>
+      <Text style={styles.scoreValue}>{score}</Text>
+      <Text style={styles.scoreLabel}>READY</Text>
+    </View>
+  );
+}
+function SectionTitle({ title, action }: { title: string; action?: string }) {
+  return (
+    <View style={styles.sectionTitleRow}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {action && <Text style={styles.sectionAction}>{action}</Text>}
+    </View>
+  );
+}
+function ProgressBar({ value, color }: { value: number; color: string }) {
+  return (
+    <View style={styles.progressTrack}>
+      <View
+        style={[
+          styles.progressFill,
+          { width: `${Math.min(Math.max(value, 0), 1) * 100}%`, backgroundColor: color },
+        ]}
+      />
+    </View>
+  );
+}
+function MetricCard({
+  label,
+  value,
+  suffix,
+  progress,
+  accent,
+}: {
+  label: string;
+  value: string;
+  suffix: string;
+  progress: number;
+  accent: string;
+}) {
+  return (
+    <View style={styles.metricCard}>
+      <Text style={styles.metricLabel}>{label}</Text>
+      <View style={styles.metricValueRow}>
+        <Text style={styles.metricValue}>{value}</Text>
+        <Text style={styles.metricSuffix}> {suffix}</Text>
+      </View>
+      <ProgressBar value={progress} color={accent} />
+    </View>
+  );
+}
+function Priority({
+  number,
+  title,
+  detail,
+  done = false,
+  last = false,
+}: {
+  number: string;
+  title: string;
+  detail: string;
+  done?: boolean;
+  last?: boolean;
+}) {
+  return (
+    <View style={[styles.priorityRow, last && styles.noBorder]}>
+      <View style={[styles.priorityNumber, done && styles.priorityDone]}>
+        <Text style={[styles.priorityNumberText, done && styles.priorityDoneText]}>
+          {done ? '✓' : number}
+        </Text>
+      </View>
+      <View style={styles.exerciseCopy}>
+        <Text style={styles.exerciseName}>{title}</Text>
+        <Text style={styles.mutedText}>{detail}</Text>
+      </View>
+    </View>
+  );
+}
+function QuickAction({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: string;
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable onPress={onPress} style={styles.quickAction}>
+      <Text style={styles.quickIcon}>{icon}</Text>
+      <Text style={styles.quickLabel}>{label}</Text>
+    </Pressable>
+  );
+}
+function Stat({ value, label, trend }: { value: string; label: string; trend: string }) {
+  return (
+    <View style={styles.statCard}>
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.exerciseName}>{label}</Text>
+      <Text style={styles.mutedText}>{trend}</Text>
+    </View>
+  );
+}
+
+const shadow = Platform.select({
+  web: { boxShadow: '0 8px 30px rgba(24, 56, 46, 0.07)' },
+  default: { elevation: 2 },
+}) as object;
+const navShadow = Platform.select({
+  web: { boxShadow: '0 18px 45px rgba(8, 24, 19, 0.26)' },
+  default: {
+    elevation: 16,
+    shadowColor: '#07110E',
+    shadowOffset: { width: 0, height: 9 },
+    shadowOpacity: 0.28,
+    shadowRadius: 18,
+  },
+}) as object;
+const glowShadow = Platform.select({
+  web: { boxShadow: '0 0 26px rgba(42, 202, 150, 0.42)' },
+  default: {
+    elevation: 8,
+    shadowColor: '#35D09D',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.45,
+    shadowRadius: 13,
+  },
+}) as object;
+const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: '#EDF3EE' },
+  appShell: {
+    alignSelf: 'center',
+    backgroundColor: '#F7FAF7',
+    flex: 1,
+    maxWidth: 520,
+    overflow: 'hidden',
+    width: '100%',
+  },
+  scrollContent: { paddingBottom: 126 },
+  header: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 22,
+    paddingTop: 20,
+  },
+  brand: { color: '#0B684F', fontSize: 13, fontWeight: '900', letterSpacing: 2 },
+  date: { color: '#718079', fontSize: 12, marginTop: 3 },
+  statusWrap: {
+    alignItems: 'center',
+    backgroundColor: '#E6EEE9',
+    borderRadius: 18,
+    height: 36,
+    justifyContent: 'center',
+    width: 36,
+  },
+  statusDot: { borderRadius: 5, height: 10, width: 10 },
+  statusOnline: { backgroundColor: '#2E9B72' },
+  statusOffline: { backgroundColor: '#CE654F' },
+  screen: { gap: 18, minWidth: 0, padding: 22, width: '100%' },
+  kicker: { color: '#147359', fontSize: 12, fontWeight: '800', letterSpacing: 1.5 },
+  pageTitle: {
+    color: '#123C31',
+    fontSize: 34,
+    fontWeight: '800',
+    letterSpacing: -1,
+    lineHeight: 39,
+  },
+  pageSubtitle: { color: '#667871', fontSize: 15, lineHeight: 22, marginTop: -10 },
+  heroRow: { alignItems: 'center', flexDirection: 'row', gap: 18 },
+  heroCopy: { flex: 1, flexShrink: 1, gap: 7, minWidth: 0 },
+  scoreRing: {
+    alignItems: 'center',
+    borderColor: '#61A78F',
+    borderRadius: 46,
+    borderWidth: 7,
+    height: 92,
+    justifyContent: 'center',
+    flexShrink: 0,
+    width: 92,
+  },
+  scoreValue: { color: '#123C31', fontSize: 28, fontWeight: '800' },
+  scoreLabel: { color: '#658079', fontSize: 8, fontWeight: '800', letterSpacing: 1 },
+  priorityCard: {
+    ...shadow,
+    backgroundColor: '#123F34',
+    borderRadius: 24,
+    flexShrink: 1,
+    gap: 12,
+    minWidth: 0,
+    padding: 22,
+  },
+  cardEyebrow: { color: '#749088', fontSize: 10, fontWeight: '900', letterSpacing: 1.2 },
+  darkTitle: { color: '#FFFFFF', fontSize: 21, fontWeight: '800', lineHeight: 27 },
+  darkBody: { color: '#C9D9D3', fontSize: 14, lineHeight: 21 },
+  priorityTitle: { color: '#173F34', fontSize: 21, fontWeight: '800', lineHeight: 27 },
+  bodyText: { color: '#61726B', fontSize: 14, lineHeight: 21 },
+  primaryButton: {
+    alignItems: 'center',
+    backgroundColor: '#16785D',
+    borderRadius: 14,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    minHeight: 50,
+    paddingHorizontal: 18,
+  },
+  primaryButtonText: { color: '#FFF', fontSize: 15, fontWeight: '800' },
+  sectionTitleRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  sectionTitle: { color: '#173F34', fontSize: 19, fontWeight: '800' },
+  sectionAction: { color: '#16785D', fontSize: 12, fontWeight: '700' },
+  twoColumns: { flexDirection: 'row', gap: 12, minWidth: 0 },
+  metricCard: {
+    ...shadow,
+    backgroundColor: '#FFF',
+    borderRadius: 18,
+    flex: 1,
+    flexShrink: 1,
+    gap: 8,
+    minWidth: 0,
+    padding: 16,
+  },
+  metricLabel: { color: '#677A72', fontSize: 12, fontWeight: '700' },
+  metricValueRow: { alignItems: 'baseline', flexDirection: 'row' },
+  metricValue: { color: '#173F34', fontSize: 22, fontWeight: '800' },
+  metricSuffix: { color: '#8A9892', fontSize: 10 },
+  progressTrack: { backgroundColor: '#E8EEEA', borderRadius: 4, height: 6, overflow: 'hidden' },
+  progressFill: { borderRadius: 4, height: 6 },
+  listCard: { ...shadow, backgroundColor: '#FFF', borderRadius: 20, paddingHorizontal: 17 },
+  priorityRow: {
+    alignItems: 'center',
+    borderBottomColor: '#E9EEEB',
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    gap: 13,
+    paddingVertical: 15,
+  },
+  priorityNumber: {
+    alignItems: 'center',
+    backgroundColor: '#E8F1EC',
+    borderRadius: 16,
+    height: 32,
+    justifyContent: 'center',
+    width: 32,
+  },
+  priorityNumberText: { color: '#16785D', fontSize: 13, fontWeight: '800' },
+  priorityDone: { backgroundColor: '#16785D' },
+  priorityDoneText: { color: '#FFF' },
+  noBorder: { borderBottomWidth: 0 },
+  quickGrid: { flexDirection: 'row', gap: 10 },
+  quickAction: {
+    alignItems: 'center',
+    backgroundColor: '#E8F1EC',
+    borderRadius: 16,
+    flex: 1,
+    gap: 7,
+    minHeight: 84,
+    justifyContent: 'center',
+  },
+  quickIcon: { color: '#16785D', fontSize: 20, fontWeight: '700' },
+  quickLabel: { color: '#31564B', fontSize: 11, fontWeight: '700', textAlign: 'center' },
+  workoutHeader: { alignItems: 'flex-end', flexDirection: 'row', justifyContent: 'space-between' },
+  workoutProgress: { color: '#173F34', fontSize: 20, fontWeight: '800', marginTop: 5 },
+  workoutPercent: { color: '#16785D', fontSize: 18, fontWeight: '800' },
+  exerciseList: { ...shadow, backgroundColor: '#FFF', borderRadius: 20, paddingHorizontal: 16 },
+  exerciseRow: {
+    alignItems: 'center',
+    borderBottomColor: '#E8EEEA',
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    paddingVertical: 15,
+  },
+  exerciseNumber: {
+    alignItems: 'center',
+    backgroundColor: '#EEF4F0',
+    borderRadius: 10,
+    height: 38,
+    justifyContent: 'center',
+    width: 38,
+  },
+  exerciseNumberText: { color: '#16785D', fontWeight: '800' },
+  exerciseCopy: { flex: 1, gap: 3 },
+  exerciseName: { color: '#24473D', fontSize: 14, fontWeight: '700' },
+  mutedText: { color: '#82908B', fontSize: 11, lineHeight: 16 },
+  chevron: { color: '#A4AEA9', fontSize: 26 },
+  actionStack: { gap: 12 },
+  secondaryButton: {
+    alignItems: 'center',
+    borderColor: '#16785D',
+    borderRadius: 14,
+    borderWidth: 1.5,
+    justifyContent: 'center',
+    minHeight: 48,
+  },
+  secondaryButtonText: { color: '#16785D', fontSize: 14, fontWeight: '800' },
+  safetyText: { color: '#82908B', fontSize: 10, lineHeight: 15, textAlign: 'center' },
+  successCard: { backgroundColor: '#DFF0E7', borderRadius: 18, gap: 5, padding: 18 },
+  successTitle: { color: '#146B52', fontSize: 18, fontWeight: '800' },
+  nutritionHero: {
+    ...shadow,
+    backgroundColor: '#FFF',
+    borderRadius: 22,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 20,
+  },
+  bigMetric: { color: '#173F34', fontSize: 30, fontWeight: '800', marginVertical: 3 },
+  macroRight: { alignItems: 'flex-end' },
+  scanCard: {
+    alignItems: 'center',
+    backgroundColor: '#EBF3EE',
+    borderRadius: 18,
+    flexDirection: 'row',
+    gap: 12,
+    padding: 15,
+  },
+  scanIcon: {
+    alignItems: 'center',
+    backgroundColor: '#16785D',
+    borderRadius: 12,
+    height: 44,
+    justifyContent: 'center',
+    width: 44,
+  },
+  scanIconText: { color: '#FFF', fontSize: 21 },
+  scanCopy: { flex: 1 },
+  soonPill: {
+    backgroundColor: '#D6E7DE',
+    borderRadius: 9,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
+  soonText: { color: '#16785D', fontSize: 8, fontWeight: '900', letterSpacing: 1 },
+  formCard: { backgroundColor: '#FFF', borderRadius: 18, gap: 11, padding: 15 },
+  input: {
+    backgroundColor: '#F1F5F2',
+    borderColor: '#DAE4DE',
+    borderRadius: 12,
+    borderWidth: 1,
+    color: '#173F34',
+    fontSize: 14,
+    minHeight: 46,
+    paddingHorizontal: 13,
+  },
+  flexInput: { flex: 1 },
+  mealRow: {
+    alignItems: 'center',
+    borderBottomColor: '#E8EEEA',
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    paddingVertical: 15,
+  },
+  mealTime: { width: 55 },
+  deleteText: { color: '#B76A5B', fontSize: 24, padding: 5 },
+  waterCard: {
+    alignItems: 'center',
+    backgroundColor: '#E5F2F5',
+    borderRadius: 18,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 17,
+  },
+  waterAdd: { color: '#267D90', fontSize: 13, fontWeight: '800' },
+  goalCard: { ...shadow, backgroundColor: '#FFF', borderRadius: 22, gap: 14, padding: 20 },
+  goalTop: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
+  goalPercent: { color: '#16785D', fontSize: 28, fontWeight: '800' },
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  statCard: {
+    ...shadow,
+    backgroundColor: '#FFF',
+    borderRadius: 18,
+    gap: 3,
+    padding: 16,
+    width: '48%',
+  },
+  statValue: { color: '#173F34', fontSize: 25, fontWeight: '800' },
+  chartCard: { ...shadow, backgroundColor: '#FFF', borderRadius: 20, gap: 18, padding: 18 },
+  barChart: {
+    alignItems: 'flex-end',
+    flexDirection: 'row',
+    height: 120,
+    justifyContent: 'space-between',
+  },
+  barColumn: { alignItems: 'center', gap: 7, height: 115, justifyContent: 'flex-end', width: 28 },
+  chartBar: { backgroundColor: '#68A990', borderRadius: 7, width: 18 },
+  chartLabel: { color: '#81908A', fontSize: 10 },
+  suggestionScroll: { marginHorizontal: -22, paddingHorizontal: 22 },
+  suggestion: {
+    backgroundColor: '#E8F1EC',
+    borderRadius: 18,
+    marginRight: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  suggestionText: { color: '#27584A', fontSize: 12, fontWeight: '700' },
+  chatArea: { gap: 12 },
+  bubble: { borderRadius: 18, gap: 5, maxWidth: '88%', padding: 14 },
+  coachBubble: { alignSelf: 'flex-start', backgroundColor: '#FFF', borderBottomLeftRadius: 5 },
+  userBubble: { alignSelf: 'flex-end', backgroundColor: '#16785D', borderBottomRightRadius: 5 },
+  bubbleLabel: { color: '#16785D', fontSize: 9, fontWeight: '900', letterSpacing: 1 },
+  coachBubbleText: { color: '#34584D', fontSize: 14, lineHeight: 21 },
+  userBubbleText: { color: '#FFF', fontSize: 14, lineHeight: 21 },
+  composer: {
+    alignItems: 'flex-end',
+    backgroundColor: '#FFF',
+    borderColor: '#DFE7E2',
+    borderRadius: 20,
+    borderWidth: 1,
+    flexDirection: 'row',
+    padding: 8,
+  },
+  composerInput: {
+    color: '#173F34',
+    flex: 1,
+    fontSize: 14,
+    maxHeight: 100,
+    minHeight: 42,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+  },
+  sendButton: {
+    alignItems: 'center',
+    backgroundColor: '#16785D',
+    borderRadius: 18,
+    height: 38,
+    justifyContent: 'center',
+    width: 38,
+  },
+  sendText: { color: '#FFF', fontSize: 20, fontWeight: '800' },
+  tabBar: {
+    ...navShadow,
+    alignItems: 'center',
+    alignSelf: 'center',
+    backgroundColor: '#101513',
+    borderColor: '#27302D',
+    borderRadius: 28,
+    borderWidth: 1,
+    bottom: 14,
+    flexDirection: 'row',
+    height: 88,
+    justifyContent: 'space-around',
+    maxWidth: 488,
+    overflow: 'hidden',
+    paddingHorizontal: 7,
+    paddingVertical: 8,
+    position: 'absolute',
+    width: '94%',
+  },
+  tabButton: {
+    alignItems: 'center',
+    flex: 1,
+    gap: 3,
+    justifyContent: 'center',
+    minHeight: 70,
+    minWidth: 0,
+    position: 'relative',
+  },
+  tabButtonPressed: { opacity: 0.72, transform: [{ scale: 0.96 }] },
+  activeGlow: {
+    ...glowShadow,
+    backgroundColor: 'rgba(30, 136, 104, 0.22)',
+    borderRadius: 36,
+    height: 72,
+    position: 'absolute',
+    top: -2,
+    width: 72,
+  },
+  tabIconWrap: {
+    alignItems: 'center',
+    height: 38,
+    justifyContent: 'center',
+    width: 44,
+  },
+  tabIconWrapActive: {
+    backgroundColor: 'rgba(42, 192, 143, 0.12)',
+    borderColor: 'rgba(111, 236, 192, 0.2)',
+    borderRadius: 15,
+    borderWidth: 1,
+  },
+  tabLabel: { color: '#7D8985', fontSize: 10, fontWeight: '700' },
+  tabActive: { color: '#F4FAF7', fontWeight: '800' },
+});
