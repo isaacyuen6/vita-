@@ -10,8 +10,8 @@ Source: https://github.com/hasaneyldrm/exercises-dataset
 
 The dataset repository's GIF/image media is not included in this app build.
 
-## Wikimedia Commons - Muscles anterior.png
+## FreeSVG - Male musculature
 
-The exercise muscle diagram references `Muscles anterior.png`, a public-domain image on Wikimedia Commons derived from Gray's Anatomy plates.
+The exercise muscle diagram references `Male musculature`, a public-domain image published by OpenClipart on FreeSVG.
 
-Source: https://commons.wikimedia.org/wiki/File:Muscles_anterior.png
+Source: https://freesvg.org/male-musculature

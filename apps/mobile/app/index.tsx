@@ -21,8 +21,147 @@ import { useVitaData } from '../src/use-vita-data';
 type ConnectionState = 'checking' | 'connected' | 'unavailable';
 const apiUrl = process.env.EXPO_PUBLIC_API_URL ?? 'http://127.0.0.1:3000';
 const api = new VitaApiClient(apiUrl);
-const anatomyImageUrl =
-  'https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/Muscles_anterior.png/500px-Muscles_anterior.png';
+const anatomyImageUrl = 'https://freesvg.org/download/61125';
+const searchResultLimit = 8;
+const popularExerciseNames = [
+  'Dumbbell Biceps Curl',
+  'Dumbbell Hammer Curl',
+  'Dumbbell Incline Curl',
+  'Dumbbell Concentration Curl',
+  'Barbell Curl',
+  'Cable Curl',
+  'Goblet Squat',
+  'Barbell Full Squat',
+  'Dumbbell Single Leg Split Squat',
+  'Split Squats',
+  'Bulgarian Split Squat',
+  'Romanian Deadlift',
+  'Dumbbell Romanian Deadlift',
+  'Leg Press',
+  'Lever Leg Extension',
+  'Lever Lying Leg Curl',
+  'Bodyweight Standing Calf Raise',
+  'Bench Press',
+  'Push-Up',
+  'Pull-Up',
+  'Lat Pulldown',
+  'Seated Cable Row',
+  'Shoulder Press',
+  'Lateral Raise',
+  'Triceps Pushdown',
+];
+const noisyExerciseTerms = [
+  'stork stance',
+  'exercise ball',
+  'bosu',
+  'leg raised',
+  'bowling motion',
+  'v sit',
+  'one arm single leg',
+  'stretch',
+  'pull in',
+  'revers ',
+  'v. 2',
+];
+
+const normalizeSearchText = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/\bbiceps\b/g, 'bicep')
+    .replace(/\bpectorals\b/g, 'chest')
+    .replace(/\bquadriceps\b/g, 'quads')
+    .replace(/\blegs\b/g, 'leg')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+
+const exerciseAliases: Record<string, string> = {
+  'Bulgarian Split Squat': 'Dumbbell Single Leg Split Squat',
+  'Dumbbell Curl': 'Dumbbell Biceps Curl',
+  'Bicep Curl': 'Dumbbell Biceps Curl',
+  'Leg Curl': 'Lever Lying Leg Curl',
+  'Lat Pulldown': 'Cable Bar Lateral Pulldown',
+  'Triceps Pushdown': 'Cable Pushdown',
+  'Goblet Squat': 'Dumbbell Goblet Squat',
+  'Romanian Deadlift': 'Dumbbell Romanian Deadlift',
+  'Leg Press': 'Lever Alternate Leg Press',
+  'Leg Extension': 'Lever Leg Extension',
+  'Standing Calf Raise': 'Bodyweight Standing Calf Raise',
+};
+
+const exerciseSearchTags: Record<string, string> = {
+  'Barbell Full Squat': 'leg legs quads glutes squat lower body popular',
+  'Bodyweight Standing Calf Raise': 'leg legs calves calf lower body popular',
+  'Dumbbell Biceps Curl': 'bicep biceps curl dumbbell arms popular',
+  'Dumbbell Concentration Curl': 'bicep biceps curl dumbbell arms popular',
+  'Dumbbell Goblet Squat': 'leg legs quads glutes squat lower body popular',
+  'Dumbbell Hammer Curl': 'bicep biceps curl dumbbell arms popular',
+  'Dumbbell Incline Curl': 'bicep biceps curl dumbbell arms popular',
+  'Dumbbell Single Leg Split Squat': 'bulgarian split squat leg legs quads glutes popular',
+  'Dumbbell Romanian Deadlift': 'leg legs hamstrings glutes hinge lower body popular',
+  'Lever Alternate Leg Press': 'leg legs quads glutes press lower body popular',
+  'Lever Leg Extension': 'leg legs quads extension lower body popular',
+  'Lever Lying Leg Curl': 'leg legs hamstrings curl lower body popular',
+  'Split Squats': 'bulgarian split squat leg legs quads glutes popular',
+};
+
+const curatedExercises = popularExerciseNames
+  .map((name) => {
+    const exact = exerciseLibrary.find((exercise) => exercise.name === name);
+    if (exact) return exact;
+    const alias = exerciseAliases[name];
+    return alias ? exerciseLibrary.find((exercise) => exercise.name === alias) : undefined;
+  })
+  .filter((exercise): exercise is Exercise => Boolean(exercise));
+
+function displayExerciseName(exercise: Exercise) {
+  const alias = Object.entries(exerciseAliases).find(([, datasetName]) => datasetName === exercise.name);
+  return alias?.[0] ?? exercise.name;
+}
+
+function scoreExerciseMatch(exercise: Exercise, query: string) {
+  const normalizedQuery = normalizeSearchText(query);
+  const name = normalizeSearchText(displayExerciseName(exercise));
+  const datasetName = normalizeSearchText(exercise.name);
+  const target = normalizeSearchText(exercise.target);
+  const equipment = normalizeSearchText(exercise.equipment);
+  const muscles = normalizeSearchText([...exercise.primary, ...exercise.secondary].join(' '));
+  const tags = normalizeSearchText(exerciseSearchTags[exercise.name] ?? '');
+  const searchable = [name, datasetName, target, equipment, muscles, tags].join(' ');
+  if (!normalizedQuery || !searchable.includes(normalizedQuery)) return 0;
+
+  let score = 20;
+  if (name === normalizedQuery || datasetName === normalizedQuery) score += 100;
+  if (name.startsWith(normalizedQuery) || datasetName.startsWith(normalizedQuery)) score += 70;
+  if (name.includes(normalizedQuery) || datasetName.includes(normalizedQuery)) score += 45;
+  if (popularExerciseNames.includes(displayExerciseName(exercise)) || popularExerciseNames.includes(exercise.name))
+    score += 35;
+  if (tags.includes(normalizedQuery)) score += 32;
+  if (normalizedQuery === 'leg' && tags.includes('popular')) score += 70;
+  if (target.includes(normalizedQuery)) score += 12;
+  if (muscles.includes(normalizedQuery)) score += 10;
+  if (equipment.includes(normalizedQuery)) score += 6;
+  if (noisyExerciseTerms.some((term) => name.includes(term) || datasetName.includes(term))) score -= 80;
+  if (name.length > 42) score -= 18;
+  return score;
+}
+
+function findExerciseMatches(query: string) {
+  const trimmedQuery = query.trim();
+  if (trimmedQuery.length < 2) return [];
+  const candidates = [...curatedExercises, ...exerciseLibrary];
+  const seen = new Set<string>();
+  return candidates
+    .map((exercise) => ({ exercise, score: scoreExerciseMatch(exercise, trimmedQuery) }))
+    .filter(({ exercise, score }) => {
+      const displayName = displayExerciseName(exercise);
+      if (score <= 0 || seen.has(displayName)) return false;
+      seen.add(displayName);
+      return true;
+    })
+    .sort((a, b) => b.score - a.score || displayExerciseName(a.exercise).length - displayExerciseName(b.exercise).length)
+    .slice(0, searchResultLimit)
+    .map(({ exercise }) => exercise);
+}
 
 const tabs: {
   id: TabId;
@@ -254,15 +393,8 @@ function TrainScreen({
     ['Seated cable row', '3 × 10–12', '20 kg'],
     ['Dead bug', '2 × 8 / side', 'Controlled'],
   ];
-  const filteredExercises = exerciseLibrary.filter((exercise) => {
-    const searchValue = exerciseQuery.trim().toLowerCase();
-    return (
-      !searchValue ||
-      exercise.name.toLowerCase().includes(searchValue) ||
-      exercise.target.toLowerCase().includes(searchValue) ||
-      exercise.primary.some((muscle) => muscle.toLowerCase().includes(searchValue))
-    );
-  });
+  const filteredExercises = findExerciseMatches(exerciseQuery);
+  const hasExerciseQuery = exerciseQuery.trim().length >= 2;
   const totalSets = 14;
 
   if (selectedExercise) {
@@ -291,39 +423,6 @@ function TrainScreen({
           <Pressable accessibilityLabel="Clear search" onPress={() => setExerciseQuery('')}>
             <MaterialCommunityIcons color="#918A9E" name="close-circle" size={20} />
           </Pressable>
-        )}
-      </View>
-
-      <View>
-        <Text style={styles.libraryTitle}>Exercise library</Text>
-        <Text style={styles.librarySubtitle}>
-          {filteredExercises.length} exercises - tap for form, steps, and target muscles
-        </Text>
-      </View>
-      <View style={styles.exerciseLibrary}>
-        {filteredExercises.map((exercise) => (
-          <Pressable
-            key={exercise.id}
-            onPress={() => setSelectedExercise(exercise)}
-            style={({ pressed }) => [styles.libraryRow, pressed && styles.libraryRowPressed]}
-          >
-            <View style={styles.libraryIcon}>
-              <MaterialCommunityIcons color="#C4B5FD" name="weight-lifter" size={23} />
-            </View>
-            <View style={styles.exerciseCopy}>
-              <Text style={styles.exerciseName}>{exercise.name}</Text>
-              <Text style={styles.mutedText}>
-                {exercise.target} · {exercise.equipment}
-              </Text>
-            </View>
-            <MaterialCommunityIcons color="#736B80" name="chevron-right" size={25} />
-          </Pressable>
-        ))}
-        {!filteredExercises.length && (
-          <View style={styles.emptySearch}>
-            <Text style={styles.exerciseName}>No matching exercises</Text>
-            <Text style={styles.mutedText}>Try curl, legs, chest, back, or biceps.</Text>
-          </View>
         )}
       </View>
 
@@ -395,7 +494,51 @@ function TrainScreen({
           <Text style={styles.bodyText}>Nice work. Today’s volume is saved on this device.</Text>
         </View>
       )}
-    </View>
+
+
+      {hasExerciseQuery ? (
+        <>
+          <View>
+            <Text style={styles.libraryTitle}>Top exercise matches</Text>
+            <Text style={styles.librarySubtitle}>
+              Showing the best popular matches for "{exerciseQuery.trim()}"
+            </Text>
+          </View>
+          <View style={styles.exerciseLibrary}>
+            {filteredExercises.map((exercise) => (
+              <Pressable
+                key={exercise.id}
+                onPress={() => setSelectedExercise(exercise)}
+                style={({ pressed }) => [styles.libraryRow, pressed && styles.libraryRowPressed]}
+              >
+                <View style={styles.libraryIcon}>
+                  <MaterialCommunityIcons color="#C4B5FD" name="weight-lifter" size={23} />
+                </View>
+                <View style={styles.exerciseCopy}>
+                  <Text style={styles.exerciseName}>{displayExerciseName(exercise)}</Text>
+                  <Text style={styles.mutedText}>
+                    {exercise.target} - {exercise.equipment}
+                  </Text>
+                </View>
+                <MaterialCommunityIcons color="#736B80" name="chevron-right" size={25} />
+              </Pressable>
+            ))}
+            {!filteredExercises.length && (
+              <View style={styles.emptySearch}>
+                <Text style={styles.exerciseName}>No popular match yet</Text>
+                <Text style={styles.mutedText}>
+                  Try dumbbell curl, split squat, legs, chest, back, or biceps.
+                </Text>
+              </View>
+            )}
+          </View>
+        </>
+      ) : (
+        <View style={styles.searchPromptCard}>
+          <MaterialCommunityIcons color="#A78BFA" name="magnify" size={22} />
+          <Text style={styles.searchPromptText}>Search to show popular exercise matches.</Text>
+        </View>
+      )}    </View>
   );
 }
 
@@ -415,7 +558,7 @@ function ExerciseDetail({
 
       <View>
         <Text style={styles.kicker}>{exercise.target.toUpperCase()}</Text>
-        <Text style={styles.pageTitle}>{exercise.name}</Text>
+        <Text style={styles.pageTitle}>{displayExerciseName(exercise)}</Text>
         <Text style={styles.pageSubtitle}>{exercise.equipment}</Text>
       </View>
 
@@ -453,7 +596,7 @@ function ExerciseDetail({
           ))}
         </View>
         <Text style={styles.anatomySource}>
-          Anatomy source: Gray's Anatomy plate via Wikimedia Commons, public domain.
+          Anatomy source: Male musculature by OpenClipart via FreeSVG, public domain.
         </Text>
         <View style={styles.muscleSummary}>
           <View style={styles.muscleColumn}>
@@ -1117,6 +1260,17 @@ const styles = StyleSheet.create({
     width: 42,
   },
   emptySearch: { alignItems: 'center', gap: 5, padding: 24 },
+  searchPromptCard: {
+    alignItems: 'center',
+    backgroundColor: '#120E19',
+    borderColor: '#2D2439',
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    padding: 14,
+  },
+  searchPromptText: { color: '#AFA6BC', flex: 1, fontSize: 12, fontWeight: '700' },
   backButton: {
     alignItems: 'center',
     alignSelf: 'flex-start',
