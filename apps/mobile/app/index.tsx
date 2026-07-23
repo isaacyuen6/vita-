@@ -13,167 +13,16 @@ import {
 } from 'react-native';
 import { VitaApiClient } from '@vita/api-client';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { exerciseLibrary } from '../src/exercise-library';
+import type { Exercise } from '../src/exercise-types';
 import { coachReply, readinessScore, targets, type TabId } from '../src/vita-data';
 import { useVitaData } from '../src/use-vita-data';
 
 type ConnectionState = 'checking' | 'connected' | 'unavailable';
 const apiUrl = process.env.EXPO_PUBLIC_API_URL ?? 'http://127.0.0.1:3000';
 const api = new VitaApiClient(apiUrl);
-
-type MuscleRegion = {
-  height: number;
-  left: number;
-  top: number;
-  width: number;
-};
-
-type Exercise = {
-  equipment: string;
-  form: string[];
-  id: string;
-  name: string;
-  primary: string[];
-  regions: MuscleRegion[];
-  secondary: string[];
-  target: string;
-};
-
-const exerciseLibrary: Exercise[] = [
-  {
-    id: 'dumbbell-curl',
-    name: 'Dumbbell bicep curl',
-    target: 'Arms',
-    equipment: 'Dumbbells',
-    primary: ['Biceps brachii'],
-    secondary: ['Brachialis', 'Forearms'],
-    regions: [
-      { left: 23, top: 27, width: 9, height: 14 },
-      { left: 68, top: 27, width: 9, height: 14 },
-    ],
-    form: [
-      'Stand tall with palms facing forward and elbows close to your ribs.',
-      'Curl the weights without letting your elbows drift forward.',
-      'Squeeze at the top, then lower slowly until your arms are long.',
-    ],
-  },
-  {
-    id: 'goblet-squat',
-    name: 'Goblet squat',
-    target: 'Legs',
-    equipment: 'Dumbbell',
-    primary: ['Quadriceps', 'Gluteus maximus'],
-    secondary: ['Adductors', 'Core'],
-    regions: [
-      { left: 36, top: 53, width: 12, height: 20 },
-      { left: 52, top: 53, width: 12, height: 20 },
-    ],
-    form: [
-      'Hold one dumbbell close to your chest and brace your trunk.',
-      'Sit between your hips while keeping knees in line with your toes.',
-      'Drive the floor away and finish tall without leaning back.',
-    ],
-  },
-  {
-    id: 'incline-push-up',
-    name: 'Incline push-up',
-    target: 'Chest',
-    equipment: 'Bench',
-    primary: ['Pectoralis major'],
-    secondary: ['Triceps', 'Front deltoids'],
-    regions: [
-      { left: 36, top: 20, width: 28, height: 13 },
-      { left: 28, top: 20, width: 8, height: 10 },
-      { left: 64, top: 20, width: 8, height: 10 },
-    ],
-    form: [
-      'Place hands just wider than shoulders and make a straight body line.',
-      'Lower your chest toward the support with elbows about 30–45 degrees out.',
-      'Press the support away while keeping ribs and hips stacked.',
-    ],
-  },
-  {
-    id: 'romanian-deadlift',
-    name: 'Romanian deadlift',
-    target: 'Posterior chain',
-    equipment: 'Dumbbells',
-    primary: ['Hamstrings', 'Gluteus maximus'],
-    secondary: ['Spinal erectors', 'Forearms'],
-    regions: [
-      { left: 35, top: 53, width: 13, height: 22 },
-      { left: 52, top: 53, width: 13, height: 22 },
-    ],
-    form: [
-      'Soften your knees, brace, and keep the dumbbells close to your legs.',
-      'Push your hips back while maintaining a long, neutral spine.',
-      'Stop when the hamstrings limit the hinge, then stand by driving hips forward.',
-    ],
-  },
-  {
-    id: 'seated-row',
-    name: 'Seated cable row',
-    target: 'Back',
-    equipment: 'Cable machine',
-    primary: ['Latissimus dorsi', 'Rhomboids'],
-    secondary: ['Rear deltoids', 'Biceps'],
-    regions: [
-      { left: 31, top: 25, width: 14, height: 20 },
-      { left: 55, top: 25, width: 14, height: 20 },
-    ],
-    form: [
-      'Sit tall with ribs stacked over hips and shoulders relaxed.',
-      'Pull elbows toward your back pockets without rocking your torso.',
-      'Pause with shoulder blades together, then reach forward under control.',
-    ],
-  },
-  {
-    id: 'dead-bug',
-    name: 'Dead bug',
-    target: 'Core',
-    equipment: 'Bodyweight',
-    primary: ['Rectus abdominis', 'Transverse abdominis'],
-    secondary: ['Hip flexors'],
-    regions: [{ left: 42, top: 31, width: 16, height: 21 }],
-    form: [
-      'Lie on your back with hips and knees at 90 degrees and arms up.',
-      'Gently press your lower back toward the floor and brace.',
-      'Extend the opposite arm and leg only as far as you can keep your back still.',
-    ],
-  },
-  {
-    id: 'shoulder-press',
-    name: 'Dumbbell shoulder press',
-    target: 'Shoulders',
-    equipment: 'Dumbbells',
-    primary: ['Deltoids'],
-    secondary: ['Triceps', 'Upper chest'],
-    regions: [
-      { left: 27, top: 19, width: 10, height: 12 },
-      { left: 63, top: 19, width: 10, height: 12 },
-    ],
-    form: [
-      'Start with weights around shoulder height and wrists stacked over elbows.',
-      'Brace your trunk and press upward without arching your lower back.',
-      'Finish with arms overhead, then lower smoothly to the start.',
-    ],
-  },
-  {
-    id: 'calf-raise',
-    name: 'Standing calf raise',
-    target: 'Lower legs',
-    equipment: 'Bodyweight or dumbbells',
-    primary: ['Gastrocnemius', 'Soleus'],
-    secondary: ['Foot stabilizers'],
-    regions: [
-      { left: 38, top: 75, width: 9, height: 17 },
-      { left: 53, top: 75, width: 9, height: 17 },
-    ],
-    form: [
-      'Stand tall with weight spread through the balls of both feet.',
-      'Rise as high as possible without rolling your ankles outward.',
-      'Pause briefly, then lower your heels slowly through a comfortable range.',
-    ],
-  },
-];
+const anatomyImageUrl =
+  'https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/Muscles_anterior.png/500px-Muscles_anterior.png';
 
 const tabs: {
   id: TabId;
@@ -448,7 +297,7 @@ function TrainScreen({
       <View>
         <Text style={styles.libraryTitle}>Exercise library</Text>
         <Text style={styles.librarySubtitle}>
-          {filteredExercises.length} exercises · tap for form and target muscles
+          {filteredExercises.length} exercises - tap for form, steps, and target muscles
         </Text>
       </View>
       <View style={styles.exerciseLibrary}>
@@ -585,7 +434,7 @@ function ExerciseDetail({
           <Image
             accessibilityLabel={`Anatomy diagram showing muscles used in ${exercise.name}`}
             resizeMode="contain"
-            source={require('../assets/anatomy-front.png')}
+            source={{ uri: anatomyImageUrl }}
             style={styles.anatomyImage}
           />
           {exercise.regions.map((region, index) => (
@@ -603,6 +452,9 @@ function ExerciseDetail({
             />
           ))}
         </View>
+        <Text style={styles.anatomySource}>
+          Anatomy source: Gray's Anatomy plate via Wikimedia Commons, public domain.
+        </Text>
         <View style={styles.muscleSummary}>
           <View style={styles.muscleColumn}>
             <Text style={styles.muscleLabel}>PRIMARY</Text>
@@ -632,8 +484,8 @@ function ExerciseDetail({
         <View style={styles.exerciseCopy}>
           <Text style={styles.formTipTitle}>Quality before load</Text>
           <Text style={styles.formTipText}>
-            Use a weight you can control through the full movement. Stop for sharp or worsening
-            pain.
+            Use a weight you can control through every listed step. Stop for sharp or worsening
+            pain, and keep each rep smooth before adding load.
           </Text>
         </View>
       </View>
@@ -1295,18 +1147,26 @@ const styles = StyleSheet.create({
   legendText: { color: '#FCA5A5', fontSize: 8, fontWeight: '900', letterSpacing: 0.8 },
   anatomyStage: {
     alignSelf: 'center',
-    height: 440,
-    maxWidth: 300,
+    backgroundColor: '#050408',
+    height: 500,
+    maxWidth: 340,
     position: 'relative',
-    width: '82%',
+    width: '86%',
   },
-  anatomyImage: { height: '100%', width: '100%' },
+  anatomyImage: { height: '100%', opacity: 0.92, width: '100%' },
   muscleHighlight: {
-    backgroundColor: 'rgba(239, 68, 68, 0.72)',
+    backgroundColor: 'rgba(239, 68, 68, 0.68)',
     borderColor: '#FCA5A5',
-    borderRadius: 30,
+    borderRadius: 999,
     borderWidth: 1,
     position: 'absolute',
+  },
+  anatomySource: {
+    color: '#8C829A',
+    fontSize: 10,
+    lineHeight: 15,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
   },
   muscleSummary: {
     backgroundColor: '#17121F',
