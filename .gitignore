@@ -26,3 +26,6 @@ __pycache__/
 .vscode/
 data/
 .tmp-exercises-dataset/
+
+# Local Netlify folder
+.netlify
