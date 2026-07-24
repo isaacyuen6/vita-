@@ -18,7 +18,7 @@ Rules:
 - Never claim medical accuracy.
 `.trim();
 
-const groqModel = process.env.GROQ_VISION_MODEL || 'meta-llama/llama-4-scout-17b-16e-instruct';
+const groqModel = process.env.GROQ_VISION_MODEL || 'qwen/qwen3.6-27b';
 const openRouterModel = process.env.OPENROUTER_MODEL || 'openrouter/free';
 
 function jsonResponse(statusCode, payload) {
