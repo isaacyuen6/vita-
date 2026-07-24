@@ -112,24 +112,53 @@ const noisyExerciseTerms = [
 ];
 
 const malaysiaFoodSuggestions = [
-  { name: 'Nasi Lemak with Fried Chicken', calories: 820, protein: 32, carbs: 88, fat: 38 },
-  { name: 'Nasi Lemak Biasa', calories: 540, protein: 14, carbs: 70, fat: 24 },
-  { name: 'Ayam Gepuk with Rice', calories: 760, protein: 38, carbs: 82, fat: 30 },
-  { name: 'Ayam Gepuk Top Global', calories: 780, protein: 39, carbs: 84, fat: 31 },
-  { name: 'Chicken Rice', calories: 620, protein: 36, carbs: 72, fat: 18 },
-  { name: 'Nasi Kandar Ayam', calories: 900, protein: 38, carbs: 95, fat: 42 },
-  { name: 'Nasi Goreng Kampung', calories: 680, protein: 24, carbs: 88, fat: 24 },
-  { name: 'Mee Goreng Mamak', calories: 720, protein: 22, carbs: 92, fat: 30 },
-  { name: 'Char Kuey Teow', calories: 740, protein: 25, carbs: 78, fat: 35 },
-  { name: 'Laksa', calories: 560, protein: 22, carbs: 70, fat: 20 },
-  { name: 'Roti Canai with Dhal', calories: 360, protein: 10, carbs: 46, fat: 15 },
-  { name: 'Roti Telur', calories: 430, protein: 15, carbs: 46, fat: 21 },
-  { name: 'Satay Ayam 10 sticks', calories: 520, protein: 45, carbs: 18, fat: 30 },
-  { name: 'KFC Twister Box', calories: 980, protein: 42, carbs: 105, fat: 44 },
-  { name: 'KFC Zinger Burger Combo', calories: 950, protein: 39, carbs: 98, fat: 43 },
-  { name: 'McDonald’s Spicy Chicken McDeluxe Meal', calories: 1000, protein: 38, carbs: 110, fat: 45 },
-  { name: 'Teh Tarik', calories: 180, protein: 5, carbs: 30, fat: 5 },
-].map((food) => ({ ...food, fat: food.fat, confidence: 0.75 }));
+  { name: "Nasi Lemak with Fried Chicken", calories: 820, protein: 32, carbs: 88, fat: 38 },
+  { name: "Nasi Lemak Biasa", calories: 540, protein: 14, carbs: 70, fat: 24 },
+  { name: "Nasi Lemak Ayam Rendang", calories: 790, protein: 30, carbs: 84, fat: 36 },
+  { name: "Nasi Lemak Beef Rendang", calories: 860, protein: 35, carbs: 82, fat: 42 },
+  { name: "Ayam Gepuk with Rice", calories: 760, protein: 38, carbs: 82, fat: 30 },
+  { name: "Ayam Gepuk Top Global", calories: 780, protein: 39, carbs: 84, fat: 31 },
+  { name: "Ayam Penyet with Rice", calories: 790, protein: 37, carbs: 86, fat: 34 },
+  { name: "Chicken Rice", calories: 620, protein: 36, carbs: 72, fat: 18 },
+  { name: "Roasted Chicken Rice", calories: 680, protein: 39, carbs: 76, fat: 22 },
+  { name: "Hainanese Chicken Rice", calories: 640, protein: 35, carbs: 74, fat: 20 },
+  { name: "Nasi Kandar Ayam", calories: 900, protein: 38, carbs: 95, fat: 42 },
+  { name: "Nasi Kandar Ayam Madu", calories: 980, protein: 42, carbs: 110, fat: 42 },
+  { name: "Nasi Kerabu Ayam Percik", calories: 720, protein: 34, carbs: 82, fat: 28 },
+  { name: "Nasi Dagang Ikan", calories: 650, protein: 30, carbs: 86, fat: 22 },
+  { name: "Nasi Goreng Kampung", calories: 680, protein: 24, carbs: 88, fat: 24 },
+  { name: "Nasi Goreng Pattaya", calories: 780, protein: 31, carbs: 92, fat: 30 },
+  { name: "Maggi Goreng Mamak", calories: 760, protein: 22, carbs: 98, fat: 30 },
+  { name: "Mee Goreng Mamak", calories: 720, protein: 22, carbs: 92, fat: 30 },
+  { name: "Char Kuey Teow", calories: 740, protein: 25, carbs: 78, fat: 35 },
+  { name: "Hokkien Mee", calories: 780, protein: 30, carbs: 90, fat: 32 },
+  { name: "Curry Mee", calories: 690, protein: 28, carbs: 72, fat: 32 },
+  { name: "Laksa", calories: 560, protein: 22, carbs: 70, fat: 20 },
+  { name: "Asam Laksa", calories: 430, protein: 22, carbs: 62, fat: 10 },
+  { name: "Roti Canai with Dhal", calories: 360, protein: 10, carbs: 46, fat: 15 },
+  { name: "Roti Telur", calories: 430, protein: 15, carbs: 46, fat: 21 },
+  { name: "Roti Tisu", calories: 650, protein: 12, carbs: 88, fat: 28 },
+  { name: "Murtabak Ayam", calories: 760, protein: 32, carbs: 78, fat: 34 },
+  { name: "Satay Ayam 10 sticks", calories: 520, protein: 45, carbs: 18, fat: 30 },
+  { name: "Ramly Burger Special", calories: 720, protein: 32, carbs: 66, fat: 38 },
+  { name: "Banana Leaf Rice", calories: 860, protein: 28, carbs: 116, fat: 32 },
+  { name: "Mixed Rice Economy Rice", calories: 700, protein: 32, carbs: 88, fat: 24 },
+  { name: "KFC Twister Box", calories: 980, protein: 42, carbs: 105, fat: 44 },
+  { name: "KFC Colonel Burger Combo", calories: 880, protein: 34, carbs: 98, fat: 38 },
+  { name: "KFC Zinger Burger Combo", calories: 950, protein: 39, carbs: 98, fat: 43 },
+  { name: "KFC Snack Plate", calories: 870, protein: 45, carbs: 82, fat: 42 },
+  { name: "KFC Dinner Plate", calories: 1120, protein: 58, carbs: 98, fat: 58 },
+  { name: "KFC Cheezy Wedges", calories: 430, protein: 9, carbs: 54, fat: 20 },
+  { name: "McDonald's Big Mac Meal", calories: 990, protein: 35, carbs: 110, fat: 43 },
+  { name: "McDonald's McChicken Meal", calories: 820, protein: 28, carbs: 100, fat: 34 },
+  { name: "McDonald's Spicy Chicken McDeluxe Meal", calories: 1000, protein: 38, carbs: 110, fat: 45 },
+  { name: "McDonald's Ayam Goreng McD Meal", calories: 980, protein: 42, carbs: 95, fat: 48 },
+  { name: "McDonald's Filet-O-Fish Meal", calories: 780, protein: 26, carbs: 94, fat: 32 },
+  { name: "Subway Chicken Teriyaki 6 inch", calories: 390, protein: 27, carbs: 55, fat: 8 },
+  { name: "Sushi King Salmon Set", calories: 620, protein: 34, carbs: 82, fat: 18 },
+  { name: "Teh Tarik", calories: 180, protein: 5, carbs: 30, fat: 5 },
+  { name: "Milo Ais", calories: 240, protein: 7, carbs: 42, fat: 6 },
+].map((food) => ({ ...food, confidence: 0.75 }));
 
 const normalizeSearchText = (value: string) =>
   value
@@ -799,7 +828,7 @@ function TrainScreen({
       ) : (
         <View style={styles.successCard}>
           <Text style={styles.successTitle}>Workout complete</Text>
-          <Text style={styles.bodyText}>Nice work. Today?s volume is saved on this device.</Text>
+          <Text style={styles.bodyText}>Nice work. Today's volume is saved on this device.</Text>
         </View>
       )}
     </View>
@@ -974,12 +1003,22 @@ function EatScreen({
   const [editMealName, setEditMealName] = useState('');
   const [editMealCalories, setEditMealCalories] = useState('');
   const [editMealProtein, setEditMealProtein] = useState('');
+  const [waterInputMl, setWaterInputMl] = useState('');
   const needsGroqKey = !hasGroqFoodApiKey();
   const nutritionGoals = getNutritionGoals(data);
   const caloriesRemaining = Math.max(nutritionGoals.calories - calories, 0);
   const calorieProgress = calories / Math.max(nutritionGoals.calories, 1);
   const manualQuery = [mealName, ...mealItems].join(' ').trim().toLowerCase();
-  const suggestedFoods = (manualQuery.length >= 2 ? malaysiaFoodSuggestions.filter((food) => food.name.toLowerCase().includes(manualQuery)) : malaysiaFoodSuggestions).slice(0, 6);
+  const normalizedManualQuery = manualQuery.replace(/mcdonalds|mcd\b/g, 'mcdonald').replace(/kentucky/g, 'kfc');
+  const suggestedFoods = manualQuery.length >= 2
+    ? malaysiaFoodSuggestions
+        .filter((food) => {
+          const name = food.name.toLowerCase().replace(/mcdonald's/g, 'mcdonald');
+          const words = normalizedManualQuery.split(/\s+/).filter(Boolean);
+          return name.includes(normalizedManualQuery) || words.every((word) => name.includes(word));
+        })
+        .slice(0, 6)
+    : [];
 
   function saveNutritionGoal(mode: NutritionGoalMode) {
     const profile = { ...data.userProfile };
@@ -999,7 +1038,7 @@ function EatScreen({
 
   function estimateFromSuggestion(food: (typeof malaysiaFoodSuggestions)[number]) {
     setMealName(food.name);
-    setManualEstimate({ assumptions: ['Approximate Malaysia serving/restaurant portion'], confidence: food.confidence, items: [{ calories: food.calories, carbsG: food.carbs, confidence: food.confidence, fatG: food.fat, name: food.name, portion: '1 serving', proteinG: food.protein }], notes: 'Preloaded estimate. Edit if your portion is bigger or smaller.', totals: { calories: food.calories, carbsG: food.carbs, fatG: food.fat, proteinG: food.protein } });
+    setManualEstimate({ assumptions: ['Approximate Malaysia serving or restaurant portion'], confidence: food.confidence, items: [{ calories: food.calories, carbsG: food.carbs, confidence: food.confidence, fatG: food.fat, name: food.name, portion: '1 serving', proteinG: food.protein }], notes: 'Preloaded estimate. Edit if your portion is bigger or smaller.', totals: { calories: food.calories, carbsG: food.carbs, fatG: food.fat, proteinG: food.protein } });
   }
 
   function saveEstimate(estimate: FoodPhotoEstimate, fallbackName: string, source: 'manual' | 'photo') {
@@ -1008,13 +1047,29 @@ function EatScreen({
     setMealName(''); setMealItems(['']); setManualEstimate(null); setShowForm(false);
   }
 
+  function localFallbackEstimate(description: string): FoodPhotoEstimate {
+    const local = suggestedFoods[0];
+    if (local) {
+      return { assumptions: ['Matched from popular Malaysia and fast-food suggestions'], confidence: local.confidence, items: [{ calories: local.calories, carbsG: local.carbs, confidence: local.confidence, fatG: local.fat, name: local.name, portion: '1 serving', proteinG: local.protein }], notes: 'Local smart estimate. You can edit after saving.', totals: { calories: local.calories, carbsG: local.carbs, fatG: local.fat, proteinG: local.protein } };
+    }
+    return { assumptions: ['Generic local estimate because AI is not connected'], confidence: 0.3, items: [{ calories: 550, carbsG: 65, confidence: 0.3, fatG: 20, name: description, portion: '1 serving', proteinG: 25 }], notes: 'Connect AI or choose a closer suggestion for a more precise estimate.', totals: { calories: 550, carbsG: 65, fatG: 20, proteinG: 25 } };
+  }
+
   async function estimateManualMeal() {
     const description = [mealName.trim(), ...mealItems.map((item) => item.trim()).filter(Boolean)].filter(Boolean).join(', ');
     if (!description) { setManualMealError('Enter a meal name or choose a suggestion first.'); return; }
     setManualMealError(''); setIsEstimatingManualMeal(true);
-    try { if (needsGroqKey && Platform.OS === 'web') window.localStorage.setItem('vita-groq-key', groqKey.trim()); setManualEstimate(await estimateFoodText(description, groqKey)); }
-    catch (error) { setManualMealError(error instanceof Error ? error.message : 'Meal estimate failed.'); }
-    finally { setIsEstimatingManualMeal(false); }
+    try {
+      if (needsGroqKey && !groqKey.trim()) {
+        setManualEstimate(localFallbackEstimate(description));
+        return;
+      }
+      if (needsGroqKey && Platform.OS === 'web') window.localStorage.setItem('vita-groq-key', groqKey.trim());
+      setManualEstimate(await estimateFoodText(description, groqKey));
+    } catch {
+      setManualEstimate(localFallbackEstimate(description));
+      setManualMealError('AI was not reachable, so Vita used a local estimate you can edit.');
+    } finally { setIsEstimatingManualMeal(false); }
   }
 
   async function analyzeFood(source: 'camera' | 'library') {
@@ -1039,19 +1094,26 @@ function EatScreen({
     setEditingMealId('');
   }
 
+  function addCustomWater() {
+    const parsed = Number(waterInputMl);
+    if (!Number.isFinite(parsed) || parsed <= 0) return;
+    setData((current) => ({ ...current, waterMl: current.waterMl + Math.round(parsed) }));
+    setWaterInputMl('');
+  }
+
   return (
     <View style={styles.screen}>
       <Text style={styles.kicker}>EAT</Text><Text style={styles.pageTitle}>Fuel your day</Text><Text style={styles.pageSubtitle}>Set a goal, estimate meals, then adjust anything later.</Text>
-      <View style={styles.nutritionGoalCard}><View style={styles.goalHeaderRow}><View style={styles.exerciseCopy}><Text style={styles.cardEyebrow}>CALORIE GOAL</Text><Text style={styles.darkTitle}>{nutritionGoals.calories} kcal</Text><Text style={styles.mutedText}>{nutritionGoals.mode} target ? {calories} consumed ? {caloriesRemaining} left</Text></View><Pressable onPress={() => setShowGoalSetup((visible) => !visible)} style={styles.smallEditButton}><MaterialCommunityIcons color="#C4B5FD" name="pencil" size={16} /><Text style={styles.editPlanText}>Edit</Text></Pressable></View><ProgressBar value={calorieProgress} color="#C084FC" />{showGoalSetup && <View style={styles.goalSetupStack}><View style={styles.goalModeGrid}>{(['cut','maintain','bulk'] as NutritionGoalMode[]).map((mode) => <Pressable key={mode} onPress={() => saveNutritionGoal(mode)} style={[styles.goalModeButton, nutritionGoals.mode === mode && styles.goalModeButtonActive]}><Text style={[styles.goalModeText, nutritionGoals.mode === mode && styles.goalModeTextActive]}>{mode === 'cut' ? 'Cut fat' : mode === 'bulk' ? 'Bulk muscle' : 'Maintain'}</Text></Pressable>)}</View><View style={styles.twoColumns}><TextInput keyboardType="numeric" onChangeText={setCustomCalories} placeholder="Calories" placeholderTextColor="#746D80" style={[styles.input, styles.flexInput]} value={customCalories} /><TextInput keyboardType="numeric" onChangeText={setCustomProtein} placeholder="Protein g" placeholderTextColor="#746D80" style={[styles.input, styles.flexInput]} value={customProtein} /></View><Pressable onPress={saveCustomNutritionGoal} style={styles.secondaryButton}><Text style={styles.secondaryButtonText}>Save my custom goal</Text></Pressable></View>}</View>
+      <View style={styles.nutritionGoalCard}><View style={styles.goalHeaderRow}><View style={styles.exerciseCopy}><Text style={styles.cardEyebrow}>CALORIE GOAL</Text><Text style={styles.darkTitle}>{nutritionGoals.calories} kcal</Text><Text style={styles.mutedText}>{nutritionGoals.mode} target - {calories} consumed - {caloriesRemaining} left</Text></View><Pressable onPress={() => setShowGoalSetup((visible) => !visible)} style={styles.smallEditButton}><MaterialCommunityIcons color="#C4B5FD" name="pencil" size={16} /><Text style={styles.editPlanText}>Edit</Text></Pressable></View><ProgressBar value={calorieProgress} color="#C084FC" />{showGoalSetup && <View style={styles.goalSetupStack}><View style={styles.goalModeGrid}>{(['cut','maintain','bulk'] as NutritionGoalMode[]).map((mode) => <Pressable key={mode} onPress={() => saveNutritionGoal(mode)} style={[styles.goalModeButton, nutritionGoals.mode === mode && styles.goalModeButtonActive]}><Text style={[styles.goalModeText, nutritionGoals.mode === mode && styles.goalModeTextActive]}>{mode === 'cut' ? 'Cut fat' : mode === 'bulk' ? 'Bulk muscle' : 'Maintain'}</Text></Pressable>)}</View><View style={styles.twoColumns}><TextInput keyboardType="numeric" onChangeText={setCustomCalories} placeholder="Calories" placeholderTextColor="#746D80" style={[styles.input, styles.flexInput]} value={customCalories} /><TextInput keyboardType="numeric" onChangeText={setCustomProtein} placeholder="Protein g" placeholderTextColor="#746D80" style={[styles.input, styles.flexInput]} value={customProtein} /></View><Pressable onPress={saveCustomNutritionGoal} style={styles.secondaryButton}><Text style={styles.secondaryButtonText}>Save my custom goal</Text></Pressable></View>}</View>
       <View style={styles.nutritionHero}><View style={styles.nutritionMetric}><Text style={styles.cardEyebrow}>CALORIES</Text><Text style={styles.bigMetric}>{calories}</Text><Text style={styles.mutedText}>{caloriesRemaining} kcal remaining</Text></View><View style={styles.macroRight}><Text style={styles.cardEyebrow}>PROTEIN</Text><Text style={styles.bigMetric}>{protein} g</Text><Text style={styles.mutedText}>Target {nutritionGoals.protein} g</Text></View></View>
       <View style={styles.scanCard}><View style={styles.scanIcon}><MaterialCommunityIcons color="#FFF" name="camera-iris" size={22} /></View><View style={styles.scanCopy}><Text style={styles.exerciseName}>Analyze a meal photo</Text><Text style={styles.mutedText}>Take or upload a food photo to estimate calories, protein, carbs, and fat.</Text></View></View>
       <View style={styles.photoActions}><Pressable disabled={isScanningFood} onPress={() => void analyzeFood('camera')} style={[styles.photoActionButton, isScanningFood && styles.disabledButton]}><MaterialCommunityIcons color="#FFF" name="camera" size={18} /><Text style={styles.photoActionText}>Take photo</Text></Pressable><Pressable disabled={isScanningFood} onPress={() => void analyzeFood('library')} style={[styles.photoActionButton, styles.photoActionSecondary, isScanningFood && styles.disabledButton]}><MaterialCommunityIcons color="#B79CFF" name="image" size={18} /><Text style={styles.photoActionSecondaryText}>Choose photo</Text></Pressable></View>
       {needsGroqKey && <View style={styles.apiKeyCard}><Text style={styles.exerciseName}>Groq key for photo testing</Text><Text style={styles.mutedText}>Stored only in this browser so it does not get published inside the PWA bundle.</Text><TextInput autoCapitalize="none" autoCorrect={false} onChangeText={setGroqKey} placeholder="Paste Groq API key" placeholderTextColor="#746D80" secureTextEntry style={styles.input} value={groqKey} /></View>}
-      {isScanningFood && <View style={styles.analysisCard}><ActivityIndicator color="#C084FC" /><Text style={styles.exerciseName}>Estimating nutrition?</Text></View>}{!!foodScanError && <View style={styles.errorCard}><Text style={styles.exerciseName}>Couldn?t analyze that meal</Text><Text style={styles.mutedText}>{foodScanError}</Text></View>}{foodEstimate && <View style={styles.analysisCard}>{!!foodPhotoUri && <Image source={{ uri: foodPhotoUri }} style={styles.foodPreview} />}<Text style={styles.sectionTitle}>{foodEstimate.totals.calories} kcal</Text><View style={styles.analysisTotals}><Stat label="Protein" trend="estimated" value={String(foodEstimate.totals.proteinG) + ' g'} /><Stat label="Carbs" trend="estimated" value={String(foodEstimate.totals.carbsG) + ' g'} /><Stat label="Fat" trend="estimated" value={String(foodEstimate.totals.fatG) + ' g'} /></View><Pressable onPress={() => saveEstimate(foodEstimate, 'Photo meal estimate', 'photo')} style={styles.secondaryButton}><Text style={styles.secondaryButtonText}>Save estimated meal</Text></Pressable></View>}
+      {isScanningFood && <View style={styles.analysisCard}><ActivityIndicator color="#C084FC" /><Text style={styles.exerciseName}>Estimating nutrition...</Text></View>}{!!foodScanError && <View style={styles.errorCard}><Text style={styles.exerciseName}>Could not analyze that meal</Text><Text style={styles.mutedText}>{foodScanError}</Text></View>}{foodEstimate && <View style={styles.analysisCard}>{!!foodPhotoUri && <Image source={{ uri: foodPhotoUri }} style={styles.foodPreview} />}<Text style={styles.sectionTitle}>{foodEstimate.totals.calories} kcal</Text><View style={styles.analysisTotals}><Stat label="Protein" trend="estimated" value={String(foodEstimate.totals.proteinG) + ' g'} /><Stat label="Carbs" trend="estimated" value={String(foodEstimate.totals.carbsG) + ' g'} /><Stat label="Fat" trend="estimated" value={String(foodEstimate.totals.fatG) + ' g'} /></View><Pressable onPress={() => saveEstimate(foodEstimate, 'Photo meal estimate', 'photo')} style={styles.secondaryButton}><Text style={styles.secondaryButtonText}>Save estimated meal</Text></Pressable></View>}
       <Pressable onPress={() => setShowForm((visible) => !visible)} style={styles.primaryButton}><Text style={styles.primaryButtonText}>+ Add meal manually</Text></Pressable>
-      {showForm && <View style={styles.formCard}><TextInput accessibilityLabel="Meal name" onChangeText={(value) => { setMealName(value); setManualEstimate(null); }} placeholder="Meal name, e.g. nasi lemak or twister box" placeholderTextColor="#746D80" style={styles.input} value={mealName} /><View style={styles.suggestionStack}><Text style={styles.cardEyebrow}>MALAYSIA FOOD SUGGESTIONS</Text>{suggestedFoods.map((food) => <Pressable key={food.name} onPress={() => estimateFromSuggestion(food)} style={styles.foodSuggestion}><View style={styles.exerciseCopy}><Text style={styles.exerciseName}>{food.name}</Text><Text style={styles.mutedText}>{food.calories} kcal ? {food.protein}g protein ? {food.carbs}g carbs ? {food.fat}g fat</Text></View><MaterialCommunityIcons color="#C4B5FD" name="plus-circle" size={20} /></Pressable>)}</View><View style={styles.manualItems}>{mealItems.map((item, index) => <View key={index} style={styles.manualItemRow}><TextInput accessibilityLabel={'Food item ' + String(index + 1)} onChangeText={(value) => { setMealItems((items) => items.map((old, i) => i === index ? value : old)); setManualEstimate(null); }} placeholder={index === 0 ? 'Extra item, e.g. teh tarik' : 'Another item'} placeholderTextColor="#746D80" style={[styles.input, styles.flexInput]} value={item} /><Pressable onPress={() => setMealItems((items) => { const next = items.filter((_, i) => i !== index); return next.length ? next : ['']; })} style={styles.removeItemButton}><MaterialCommunityIcons color="#B79CFF" name="minus" size={18} /></Pressable></View>)}</View><Pressable onPress={() => setMealItems((items) => [...items, ''])} style={styles.addItemButton}><MaterialCommunityIcons color="#B79CFF" name="plus" size={18} /><Text style={styles.secondaryButtonText}>Add item</Text></Pressable>{!!manualMealError && <View style={styles.errorCard}><Text style={styles.mutedText}>{manualMealError}</Text></View>}{isEstimatingManualMeal && <View style={styles.analysisCard}><ActivityIndicator color="#C084FC" /><Text style={styles.exerciseName}>Estimating meal?</Text></View>}{manualEstimate && <View style={styles.analysisCard}><Text style={styles.cardEyebrow}>MEAL ESTIMATE</Text><Text style={styles.sectionTitle}>{manualEstimate.totals.calories} kcal</Text><Text style={styles.mutedText}>P {manualEstimate.totals.proteinG}g ? C {manualEstimate.totals.carbsG}g ? F {manualEstimate.totals.fatG}g</Text><Pressable onPress={() => saveEstimate(manualEstimate, 'Manual meal estimate', 'manual')} style={styles.secondaryButton}><Text style={styles.secondaryButtonText}>Save estimated meal</Text></Pressable></View>}<Pressable disabled={isEstimatingManualMeal} onPress={() => void estimateManualMeal()} style={[styles.secondaryButton, isEstimatingManualMeal && styles.disabledButton]}><Text style={styles.secondaryButtonText}>Estimate with AI</Text></Pressable></View>}
-      <SectionTitle title="Today?s meals" /><View style={styles.listCard}>{data.meals.map((meal, index) => <View key={meal.id} style={[styles.mealRow, index === data.meals.length - 1 && styles.noBorder]}>{editingMealId === meal.id ? <View style={styles.editMealCard}><TextInput onChangeText={setEditMealName} placeholder="Meal name" placeholderTextColor="#746D80" style={styles.input} value={editMealName} /><View style={styles.twoColumns}><TextInput keyboardType="numeric" onChangeText={setEditMealCalories} placeholder="Calories" placeholderTextColor="#746D80" style={[styles.input, styles.flexInput]} value={editMealCalories} /><TextInput keyboardType="numeric" onChangeText={setEditMealProtein} placeholder="Protein" placeholderTextColor="#746D80" style={[styles.input, styles.flexInput]} value={editMealProtein} /></View><View style={styles.mealActions}><Pressable onPress={saveEditedMeal} style={styles.compactActionButton}><Text style={styles.secondaryButtonText}>Save</Text></Pressable><Pressable onPress={() => setEditingMealId('')} style={styles.compactActionButton}><Text style={styles.secondaryButtonText}>Cancel</Text></Pressable></View></View> : <><View style={styles.mealTime}><Text style={styles.mutedText}>{meal.time}</Text></View><View style={styles.exerciseCopy}><Text style={styles.exerciseName}>{meal.name}</Text><Text style={styles.mutedText}>{meal.calories} kcal ? {meal.protein} g protein{typeof meal.carbs === 'number' ? ' ? ' + String(meal.carbs) + ' g carbs' : ''}{typeof meal.fat === 'number' ? ' ? ' + String(meal.fat) + ' g fat' : ''}</Text></View><Pressable onPress={() => startEditMeal(meal)}><MaterialCommunityIcons color="#C4B5FD" name="pencil" size={20} /></Pressable><Pressable onPress={() => setData((current) => ({ ...current, meals: current.meals.filter((item) => item.id !== meal.id) }))}><Text style={styles.deleteText}>?</Text></Pressable></>}</View>)}</View>
-      <Pressable onPress={() => setData((current) => ({ ...current, waterMl: current.waterMl + 250 }))} style={styles.waterCard}><View><Text style={styles.exerciseName}>Water</Text><Text style={styles.mutedText}>{data.waterMl} ml of {targets.waterMl} ml</Text></View><Text style={styles.waterAdd}>+ 250 ml</Text></Pressable>
+      {showForm && <View style={styles.formCard}><TextInput accessibilityLabel="Meal name" onChangeText={(value) => { setMealName(value); setManualEstimate(null); }} placeholder="Meal name, e.g. nasi lemak or twister box" placeholderTextColor="#746D80" style={styles.input} value={mealName} />{manualQuery.length >= 2 && <View style={styles.suggestionStack}><Text style={styles.cardEyebrow}>SMART FOOD SUGGESTIONS</Text>{suggestedFoods.map((food) => <Pressable key={food.name} onPress={() => estimateFromSuggestion(food)} style={styles.foodSuggestion}><View style={styles.exerciseCopy}><Text style={styles.exerciseName}>{food.name}</Text><Text style={styles.mutedText}>{food.calories} kcal - {food.protein}g protein - {food.carbs}g carbs - {food.fat}g fat</Text></View><MaterialCommunityIcons color="#C4B5FD" name="plus-circle" size={20} /></Pressable>)}{!suggestedFoods.length && <Text style={styles.mutedText}>No saved match yet. Press Estimate with AI and Vita will make an editable estimate.</Text>}</View>}<View style={styles.manualItems}>{mealItems.map((item, index) => <View key={index} style={styles.manualItemRow}><TextInput accessibilityLabel={'Food item ' + String(index + 1)} onChangeText={(value) => { setMealItems((items) => items.map((old, i) => i === index ? value : old)); setManualEstimate(null); }} placeholder={index === 0 ? 'Extra item, e.g. teh tarik' : 'Another item'} placeholderTextColor="#746D80" style={[styles.input, styles.flexInput]} value={item} /><Pressable onPress={() => setMealItems((items) => { const next = items.filter((_, i) => i !== index); return next.length ? next : ['']; })} style={styles.removeItemButton}><MaterialCommunityIcons color="#B79CFF" name="minus" size={18} /></Pressable></View>)}</View><Pressable onPress={() => setMealItems((items) => [...items, ''])} style={styles.addItemButton}><MaterialCommunityIcons color="#B79CFF" name="plus" size={18} /><Text style={styles.secondaryButtonText}>Add item</Text></Pressable>{!!manualMealError && <View style={styles.errorCard}><Text style={styles.mutedText}>{manualMealError}</Text></View>}{isEstimatingManualMeal && <View style={styles.analysisCard}><ActivityIndicator color="#C084FC" /><Text style={styles.exerciseName}>Estimating meal...</Text></View>}{manualEstimate && <View style={styles.analysisCard}><Text style={styles.cardEyebrow}>MEAL ESTIMATE</Text><Text style={styles.sectionTitle}>{manualEstimate.totals.calories} kcal</Text><Text style={styles.mutedText}>P {manualEstimate.totals.proteinG}g - C {manualEstimate.totals.carbsG}g - F {manualEstimate.totals.fatG}g</Text><Pressable onPress={() => saveEstimate(manualEstimate, 'Manual meal estimate', 'manual')} style={styles.secondaryButton}><Text style={styles.secondaryButtonText}>Save estimated meal</Text></Pressable></View>}<Pressable disabled={isEstimatingManualMeal} onPress={() => void estimateManualMeal()} style={[styles.secondaryButton, isEstimatingManualMeal && styles.disabledButton]}><Text style={styles.secondaryButtonText}>Estimate with AI</Text></Pressable></View>}
+      <SectionTitle title="Today's meals" /><View style={styles.listCard}>{data.meals.map((meal, index) => <View key={meal.id} style={[styles.mealRow, index === data.meals.length - 1 && styles.noBorder]}>{editingMealId === meal.id ? <View style={styles.editMealCard}><TextInput onChangeText={setEditMealName} placeholder="Meal name" placeholderTextColor="#746D80" style={styles.input} value={editMealName} /><View style={styles.twoColumns}><TextInput keyboardType="numeric" onChangeText={setEditMealCalories} placeholder="Calories" placeholderTextColor="#746D80" style={[styles.input, styles.flexInput]} value={editMealCalories} /><TextInput keyboardType="numeric" onChangeText={setEditMealProtein} placeholder="Protein" placeholderTextColor="#746D80" style={[styles.input, styles.flexInput]} value={editMealProtein} /></View><View style={styles.mealActions}><Pressable onPress={saveEditedMeal} style={styles.compactActionButton}><Text style={styles.secondaryButtonText}>Save</Text></Pressable><Pressable onPress={() => setEditingMealId('')} style={styles.compactActionButton}><Text style={styles.secondaryButtonText}>Cancel</Text></Pressable></View></View> : <><View style={styles.mealTime}><Text style={styles.mutedText}>{meal.time}</Text></View><View style={styles.exerciseCopy}><Text style={styles.exerciseName}>{meal.name}</Text><Text style={styles.mutedText}>{meal.calories} kcal - {meal.protein} g protein{typeof meal.carbs === 'number' ? ' - ' + String(meal.carbs) + ' g carbs' : ''}{typeof meal.fat === 'number' ? ' - ' + String(meal.fat) + ' g fat' : ''}</Text></View><Pressable onPress={() => startEditMeal(meal)}><MaterialCommunityIcons color="#C4B5FD" name="pencil" size={20} /></Pressable><Pressable onPress={() => setData((current) => ({ ...current, meals: current.meals.filter((item) => item.id !== meal.id) }))}><Text style={styles.deleteText}>x</Text></Pressable></>}</View>)}</View>
+      <View style={styles.waterCard}><View style={styles.exerciseCopy}><Text style={styles.exerciseName}>Water</Text><Text style={styles.mutedText}>{data.waterMl} ml of {targets.waterMl} ml</Text></View><TextInput keyboardType="numeric" onChangeText={setWaterInputMl} placeholder="ml" placeholderTextColor="#746D80" style={[styles.input, styles.waterInput]} value={waterInputMl} /><Pressable onPress={addCustomWater}><Text style={styles.waterAdd}>Add</Text></Pressable></View>
     </View>
   );
 }
@@ -1071,7 +1133,7 @@ function ProgressScreen({
     <View style={styles.screen}>
       <Text style={styles.kicker}>PROGRESS</Text>
       <Text style={styles.pageTitle}>Small wins add up</Text>
-      <Text style={styles.pageSubtitle}>This week’s summary uses only data you logged.</Text>
+      <Text style={styles.pageSubtitle}>This week's summary uses only data you logged.</Text>
 
       <Pressable
         onPress={() =>
@@ -2037,6 +2099,7 @@ const styles = StyleSheet.create({
     minHeight: 46,
     paddingHorizontal: 13,
   },
+  waterInput: { minHeight: 42, textAlign: 'center', width: 86 },
   flexInput: { flex: 1 },
   mealRow: {
     alignItems: 'center',
