@@ -22,15 +22,18 @@ import {
   hasGroqFoodApiKey,
   type FoodPhotoEstimate,
 } from '../src/food-analysis';
+import { estimateCalories, estimateProtein } from '../src/onboarding/calculations';
 import { OnboardingFlow } from '../src/onboarding/OnboardingFlow';
 import {
   buildTrainingPlan,
   buildSessionDay,
   coachReply,
+  getNutritionGoals,
   readinessScore,
   sessionTypeOptions,
   targets,
   type SessionType,
+  type NutritionGoalMode,
   type TabId,
   type TrainingDay,
 } from '../src/vita-data';
@@ -250,13 +253,10 @@ export default function HomeScreen() {
 
   const calories = data.meals.reduce((sum, meal) => sum + meal.calories, 0);
   const protein = data.meals.reduce((sum, meal) => sum + meal.protein, 0);
+  const nutritionGoals = getNutritionGoals(data);
   const score = readinessScore(data);
-  const dayConsumptionPercent = Math.round(
-    ((Math.min(calories / targets.calories, 1) +
-      Math.min(protein / targets.protein, 1) +
-      Math.min(data.waterMl / targets.waterMl, 1)) /
-      3) *
-      100,
+  const calorieProgressPercent = Math.round(
+    Math.min(calories / Math.max(nutritionGoals.calories, 1), 1) * 100,
   );
 
   if (!data.userProfile.onboardingCompleted) {
@@ -311,7 +311,8 @@ export default function HomeScreen() {
               calories={calories}
               protein={protein}
               score={score}
-              dayConsumptionPercent={dayConsumptionPercent}
+              calorieGoal={nutritionGoals.calories}
+              calorieProgressPercent={calorieProgressPercent}
               setTab={setTab}
               data={data}
             />
@@ -358,14 +359,16 @@ function TodayScreen({
   calories,
   protein,
   score,
-  dayConsumptionPercent,
+  calorieGoal,
+  calorieProgressPercent,
   setTab,
   data,
 }: {
   calories: number;
   protein: number;
   score: number;
-  dayConsumptionPercent: number;
+  calorieGoal: number;
+  calorieProgressPercent: number;
   setTab: (tab: TabId) => void;
   data: ReturnType<typeof useVitaData>['data'];
 }) {
@@ -376,7 +379,7 @@ function TodayScreen({
           <Text style={styles.kicker}>GOOD AFTERNOON</Text>
           <Text style={styles.pageTitle}>Here’s your plan for today.</Text>
         </View>
-        <DayRing percent={dayConsumptionPercent} />
+        <CalorieRing calories={calories} goal={calorieGoal} percent={calorieProgressPercent} />
       </View>
 
       <View style={styles.priorityCard}>
@@ -403,8 +406,8 @@ function TodayScreen({
         <MetricCard
           label="Calories"
           value={`${calories}`}
-          suffix={`/ ${targets.calories}`}
-          progress={calories / targets.calories}
+          suffix={`/ ${calorieGoal}`}
+          progress={calories / calorieGoal}
           accent="#C084FC"
         />
         <MetricCard
@@ -946,7 +949,33 @@ function EatScreen({
   );
   const [isScanningFood, setIsScanningFood] = useState(false);
   const [isEstimatingManualMeal, setIsEstimatingManualMeal] = useState(false);
+  const [showGoalSetup, setShowGoalSetup] = useState(false);
   const needsGroqKey = !hasGroqFoodApiKey();
+  const nutritionGoals = getNutritionGoals(data);
+  const caloriesRemaining = Math.max(nutritionGoals.calories - calories, 0);
+  const calorieProgress = calories / Math.max(nutritionGoals.calories, 1);
+
+  function saveNutritionGoal(mode: NutritionGoalMode) {
+    const profile = { ...data.userProfile };
+    if (mode === 'cut') profile.goals = ['lose_fat'];
+    if (mode === 'bulk') profile.goals = ['build_muscle_mass'];
+    if (mode === 'maintain') profile.goals = profile.goals.filter(
+      (goal) => goal !== 'lose_fat' && goal !== 'build_muscle_mass',
+    );
+    const estimatedCalories = estimateCalories(profile);
+    const estimatedProtein = estimateProtein(profile);
+    const fallbackCalories = mode === 'cut' ? 1850 : mode === 'bulk' ? 2600 : 2200;
+    setData((current) => ({
+      ...current,
+      nutritionGoals: {
+        calories: estimatedCalories ?? fallbackCalories,
+        mode,
+        protein: estimatedProtein ?? current.nutritionGoals?.protein ?? targets.protein,
+      },
+      userProfile: { ...current.userProfile, goals: profile.goals },
+    }));
+    setShowGoalSetup(false);
+  }
 
   function saveEstimate(
     estimate: FoodPhotoEstimate,
@@ -1080,21 +1109,74 @@ function EatScreen({
       <Text style={styles.pageTitle}>Fuel your day</Text>
       <Text style={styles.pageSubtitle}>Estimates stay editable until you confirm them.</Text>
 
+      <View style={styles.nutritionGoalCard}>
+        <View style={styles.goalHeaderRow}>
+          <View style={styles.exerciseCopy}>
+            <Text style={styles.cardEyebrow}>CALORIE GOAL</Text>
+            <Text style={styles.darkTitle}>{nutritionGoals.calories} kcal</Text>
+            <Text style={styles.mutedText}>
+              {nutritionGoals.mode === 'cut'
+                ? 'Cut target'
+                : nutritionGoals.mode === 'bulk'
+                  ? 'Bulk target'
+                  : 'Maintain target'}{' '}
+              · based on your profile
+            </Text>
+          </View>
+          <Pressable onPress={() => setShowGoalSetup((visible) => !visible)} style={styles.smallEditButton}>
+            <MaterialCommunityIcons color="#C4B5FD" name="auto-fix" size={16} />
+            <Text style={styles.editPlanText}>AI Goal</Text>
+          </Pressable>
+        </View>
+        <View style={styles.goalProgressRow}>
+          <Text style={styles.goalConsumed}>{calories} consumed</Text>
+          <Text style={styles.goalRemaining}>{caloriesRemaining} left</Text>
+        </View>
+        <ProgressBar value={calorieProgress} color="#C084FC" />
+        {showGoalSetup && (
+          <View style={styles.goalModeGrid}>
+            {[
+              { label: 'Cut fat', value: 'cut' },
+              { label: 'Maintain', value: 'maintain' },
+              { label: 'Bulk muscle', value: 'bulk' },
+            ].map((option) => (
+              <Pressable
+                key={option.value}
+                onPress={() => saveNutritionGoal(option.value as NutritionGoalMode)}
+                style={[
+                  styles.goalModeButton,
+                  nutritionGoals.mode === option.value && styles.goalModeButtonActive,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.goalModeText,
+                    nutritionGoals.mode === option.value && styles.goalModeTextActive,
+                  ]}
+                >
+                  {option.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
+      </View>
+
       <View style={styles.nutritionHero}>
         <View style={styles.nutritionMetric}>
           <Text style={styles.cardEyebrow}>CALORIES</Text>
           <Text style={styles.bigMetric}>{calories}</Text>
           <Text style={styles.mutedText}>
-            {Math.max(targets.calories - calories, 0)} kcal remaining
+            {caloriesRemaining} kcal remaining
           </Text>
         </View>
         <View style={styles.macroRight}>
           <Text style={styles.cardEyebrow}>PROTEIN</Text>
           <Text style={styles.bigMetric}>{protein} g</Text>
-          <Text style={styles.mutedText}>Target {targets.protein} g</Text>
+          <Text style={styles.mutedText}>Target {nutritionGoals.protein} g</Text>
         </View>
       </View>
-      <ProgressBar value={calories / targets.calories} color="#C084FC" />
+      <ProgressBar value={calorieProgress} color="#C084FC" />
 
       <View style={styles.scanCard}>
         <View style={styles.scanIcon}>
@@ -1492,11 +1574,12 @@ function CoachScreen({ data }: { data: ReturnType<typeof useVitaData>['data'] })
   );
 }
 
-function DayRing({ percent }: { percent: number }) {
+function CalorieRing({ calories, goal, percent }: { calories: number; goal: number; percent: number }) {
   return (
     <View style={styles.scoreRing}>
-      <Text style={styles.scoreValue}>{percent}%</Text>
-      <Text style={styles.scoreLabel}>DAY</Text>
+      <Text style={styles.scoreValue}>{calories}</Text>
+      <Text style={styles.scoreLabel}>OF {goal}</Text>
+      <Text style={styles.scorePercent}>{percent}%</Text>
     </View>
   );
 }
@@ -1627,11 +1710,11 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     backgroundColor: '#0A080E',
     flex: 1,
-    maxWidth: 520,
+    maxWidth: 560,
     overflow: 'hidden',
     width: '100%',
   },
-  scrollContent: { paddingBottom: 126 },
+  scrollContent: { alignItems: 'center', paddingBottom: 126, width: '100%' },
   header: {
     alignItems: 'center',
     flexDirection: 'row',
@@ -1652,7 +1735,7 @@ const styles = StyleSheet.create({
   statusDot: { borderRadius: 5, height: 10, width: 10 },
   statusOnline: { backgroundColor: '#A78BFA' },
   statusOffline: { backgroundColor: '#CE654F' },
-  screen: { gap: 18, minWidth: 0, padding: 22, width: '100%' },
+  screen: { alignSelf: 'center', gap: 18, maxWidth: 520, minWidth: 0, padding: 22, width: '100%' },
   kicker: { color: '#A78BFA', fontSize: 12, fontWeight: '800', letterSpacing: 1.5 },
   pageTitle: {
     color: '#F8F6FC',
@@ -1674,8 +1757,9 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     width: 92,
   },
-  scoreValue: { color: '#F8F6FC', fontSize: 28, fontWeight: '800' },
-  scoreLabel: { color: '#A99FC0', fontSize: 8, fontWeight: '800', letterSpacing: 1 },
+  scoreValue: { color: '#F8F6FC', fontSize: 22, fontWeight: '900' },
+  scoreLabel: { color: '#A99FC0', fontSize: 7, fontWeight: '800', letterSpacing: 0.5, marginTop: 1 },
+  scorePercent: { color: '#C4B5FD', fontSize: 10, fontWeight: '900', marginTop: 3 },
   priorityCard: {
     ...shadow,
     backgroundColor: '#17121F',
@@ -1898,10 +1982,20 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
     padding: 6,
   },
-  planTab: { alignItems: 'center', borderRadius: 12, flex: 1, paddingVertical: 10 },
+  planTab: {
+    alignItems: 'center',
+    borderRadius: 12,
+    flexBasis: '31%',
+    flexGrow: 1,
+    justifyContent: 'center',
+    minHeight: 46,
+    paddingHorizontal: 8,
+    paddingVertical: 10,
+  },
   planTabActive: { backgroundColor: '#7C3AED' },
   planTabText: { color: '#AFA6BC', fontSize: 12, fontWeight: '900' },
   planTabTextActive: { color: '#FFFFFF' },
@@ -2101,7 +2195,9 @@ const styles = StyleSheet.create({
     borderBottomColor: '#2A2431',
     borderBottomWidth: 1,
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
+    minWidth: 0,
+    paddingHorizontal: 2,
     paddingVertical: 15,
   },
   exerciseNumber: {
@@ -2140,6 +2236,38 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 16,
   },
+  nutritionGoalCard: {
+    ...shadow,
+    backgroundColor: '#15111B',
+    borderColor: '#30263F',
+    borderRadius: 22,
+    borderWidth: 1,
+    gap: 13,
+    padding: 16,
+  },
+  goalHeaderRow: { alignItems: 'center', flexDirection: 'row', gap: 12 },
+  goalProgressRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  goalConsumed: { color: '#F8F6FC', fontSize: 13, fontWeight: '900' },
+  goalRemaining: { color: '#A99FC0', fontSize: 12, fontWeight: '800' },
+  goalModeGrid: { flexDirection: 'row', gap: 8 },
+  goalModeButton: {
+    alignItems: 'center',
+    backgroundColor: '#211832',
+    borderColor: '#342A42',
+    borderRadius: 14,
+    borderWidth: 1,
+    flex: 1,
+    justifyContent: 'center',
+    minHeight: 42,
+    paddingHorizontal: 8,
+  },
+  goalModeButtonActive: { backgroundColor: '#7C3AED', borderColor: '#A78BFA' },
+  goalModeText: { color: '#B9B0C8', fontSize: 11, fontWeight: '900', textAlign: 'center' },
+  goalModeTextActive: { color: '#FFF' },
   nutritionMetric: { flex: 1, minWidth: 0 },
   bigMetric: { color: '#F8F6FC', fontSize: 25, fontWeight: '800', marginVertical: 3 },
   macroRight: { alignItems: 'flex-start', flex: 1, minWidth: 0 },

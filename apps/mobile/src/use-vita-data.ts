@@ -22,6 +22,7 @@ function loadData(): VitaData {
     return {
       ...initialData,
       ...parsed,
+      nutritionGoals: parsed.nutritionGoals ?? initialData.nutritionGoals,
       userProfile: {
         ...defaultUserProfile,
         ...parsed.userProfile,

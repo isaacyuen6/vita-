@@ -14,6 +14,14 @@ export interface Meal {
   time: string;
 }
 
+export type NutritionGoalMode = 'cut' | 'maintain' | 'bulk';
+
+export interface NutritionGoals {
+  calories: number;
+  mode: NutritionGoalMode;
+  protein: number;
+}
+
 export type TrainingDay = string;
 
 export type SessionType =
@@ -51,6 +59,7 @@ export interface VitaData {
   sleepQuality: number;
   waterMl: number;
   meals: Meal[];
+  nutritionGoals: NutritionGoals;
   currentTrainingDay: TrainingDay;
   userProfile: UserProfile;
   trainingPlan: TrainingPlanDay[];
@@ -216,6 +225,7 @@ export const initialData: VitaData = {
   sleepHours: 6.5,
   sleepQuality: 3,
   waterMl: 750,
+  nutritionGoals: { calories: 2200, mode: 'maintain', protein: 130 },
   meals: [
     { id: 'breakfast', name: 'Oats, banana & milk', calories: 410, protein: 18, time: '8:10 AM' },
     { id: 'lunch', name: 'Chicken rice', calories: 620, protein: 36, time: '1:05 PM' },
@@ -226,6 +236,10 @@ export const initialData: VitaData = {
 };
 
 export const targets = { calories: 2200, protein: 130, waterMl: 2500, weeklyWorkouts: 3 };
+
+export function getNutritionGoals(data: VitaData): NutritionGoals {
+  return data.nutritionGoals ?? initialData.nutritionGoals;
+}
 
 export function readinessScore(data: VitaData): number {
   const sleep = Math.min(data.sleepHours / 8, 1) * 45;
