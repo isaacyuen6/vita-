@@ -14,7 +14,21 @@ export interface Meal {
   time: string;
 }
 
-export type TrainingDay = 'push' | 'pull' | 'legs';
+export type TrainingDay = string;
+
+export type SessionType =
+  | 'upper_body'
+  | 'lower_body'
+  | 'push'
+  | 'pull'
+  | 'legs'
+  | 'full_body'
+  | 'strength'
+  | 'hypertrophy'
+  | 'athletic_power'
+  | 'conditioning'
+  | 'mobility_recovery'
+  | 'core';
 
 export interface PlannedExercise {
   id: string;
@@ -26,6 +40,7 @@ export interface PlannedExercise {
 export interface TrainingPlanDay {
   id: TrainingDay;
   label: string;
+  sessionType: SessionType;
   exercises: PlannedExercise[];
 }
 
@@ -41,6 +56,160 @@ export interface VitaData {
   trainingPlan: TrainingPlanDay[];
 }
 
+const sessionTemplates: Record<SessionType, Omit<TrainingPlanDay, 'id'>> = {
+  upper_body: {
+    label: 'Upper Body',
+    sessionType: 'upper_body',
+    exercises: [
+      { id: 'upper-1', name: 'Bench Press', prescription: '3 x 6-10', load: 'Barbell' },
+      { id: 'upper-2', name: 'Lat Pulldown', prescription: '3 x 8-12', load: 'Cable' },
+      { id: 'upper-3', name: 'Shoulder Press', prescription: '3 x 8-10', load: 'Dumbbells' },
+      { id: 'upper-4', name: 'Seated Cable Row', prescription: '3 x 10-12', load: 'Cable' },
+    ],
+  },
+  lower_body: {
+    label: 'Lower Body',
+    sessionType: 'lower_body',
+    exercises: [
+      { id: 'lower-1', name: 'Squat', prescription: '3 x 6-10', load: 'Barbell' },
+      { id: 'lower-2', name: 'Romanian Deadlift', prescription: '3 x 8-10', load: 'Dumbbells' },
+      { id: 'lower-3', name: 'Bulgarian Split Squat', prescription: '3 x 8-10 / side', load: 'Dumbbells' },
+      { id: 'lower-4', name: 'Leg Curl', prescription: '3 x 10-15', load: 'Machine' },
+    ],
+  },
+  push: {
+    label: 'Push',
+    sessionType: 'push',
+    exercises: [
+      { id: 'push-1', name: 'Bench Press', prescription: '3 x 8-10', load: 'Barbell' },
+      { id: 'push-2', name: 'Incline Dumbbell Press', prescription: '3 x 8-12', load: 'Dumbbells' },
+      { id: 'push-3', name: 'Shoulder Press', prescription: '3 x 8-10', load: 'Dumbbells' },
+      { id: 'push-4', name: 'Triceps Pushdown', prescription: '3 x 10-15', load: 'Cable' },
+    ],
+  },
+  pull: {
+    label: 'Pull',
+    sessionType: 'pull',
+    exercises: [
+      { id: 'pull-1', name: 'Pull-Up', prescription: '3 x 5-10', load: 'Body Weight' },
+      { id: 'pull-2', name: 'Seated Cable Row', prescription: '3 x 8-12', load: 'Cable' },
+      { id: 'pull-3', name: 'Lat Pulldown', prescription: '3 x 10-12', load: 'Cable' },
+      { id: 'pull-4', name: 'Dumbbell Curl', prescription: '3 x 10-12', load: 'Dumbbells' },
+    ],
+  },
+  legs: {
+    label: 'Legs',
+    sessionType: 'legs',
+    exercises: [
+      { id: 'legs-1', name: 'Squat', prescription: '3 x 8-10', load: 'Barbell' },
+      { id: 'legs-2', name: 'Leg Press', prescription: '3 x 10-12', load: 'Machine' },
+      { id: 'legs-3', name: 'Romanian Deadlift', prescription: '3 x 8-10', load: 'Dumbbells' },
+      { id: 'legs-4', name: 'Standing Calf Raise', prescription: '3 x 12-15', load: 'Machine' },
+    ],
+  },
+  full_body: {
+    label: 'Full Body',
+    sessionType: 'full_body',
+    exercises: [
+      { id: 'full-1', name: 'Goblet Squat', prescription: '3 x 10-12', load: 'Dumbbell' },
+      { id: 'full-2', name: 'Push-Up', prescription: '3 x 8-15', load: 'Body Weight' },
+      { id: 'full-3', name: 'One Arm Dumbbell Row', prescription: '3 x 10 / side', load: 'Dumbbell' },
+      { id: 'full-4', name: 'Plank', prescription: '3 x 30-45 sec', load: 'Body Weight' },
+    ],
+  },
+  strength: {
+    label: 'Strength',
+    sessionType: 'strength',
+    exercises: [
+      { id: 'strength-1', name: 'Squat', prescription: '4 x 3-6', load: 'Barbell' },
+      { id: 'strength-2', name: 'Bench Press', prescription: '4 x 3-6', load: 'Barbell' },
+      { id: 'strength-3', name: 'Deadlift', prescription: '3 x 3-5', load: 'Barbell' },
+    ],
+  },
+  hypertrophy: {
+    label: 'Hypertrophy',
+    sessionType: 'hypertrophy',
+    exercises: [
+      { id: 'hyp-1', name: 'Incline Dumbbell Press', prescription: '3 x 8-12', load: 'Dumbbells' },
+      { id: 'hyp-2', name: 'Cable Row', prescription: '3 x 10-12', load: 'Cable' },
+      { id: 'hyp-3', name: 'Lateral Raise', prescription: '3 x 12-20', load: 'Dumbbells' },
+      { id: 'hyp-4', name: 'Leg Press', prescription: '3 x 10-15', load: 'Machine' },
+    ],
+  },
+  athletic_power: {
+    label: 'Athletic Power',
+    sessionType: 'athletic_power',
+    exercises: [
+      { id: 'power-1', name: 'Box Jump', prescription: '4 x 3-5', load: 'Body Weight' },
+      { id: 'power-2', name: 'Kettlebell Swing', prescription: '3 x 10-15', load: 'Kettlebell' },
+      { id: 'power-3', name: 'Walking Lunge', prescription: '3 x 10 / side', load: 'Dumbbells' },
+      { id: 'power-4', name: 'Medicine Ball Slam', prescription: '3 x 8-12', load: 'Medicine Ball' },
+    ],
+  },
+  conditioning: {
+    label: 'Conditioning',
+    sessionType: 'conditioning',
+    exercises: [
+      { id: 'cond-1', name: 'Air Bike', prescription: '8 x 20 sec hard / 70 sec easy', load: 'Machine' },
+      { id: 'cond-2', name: 'Farmer Walk', prescription: '4 x 30 m', load: 'Dumbbells' },
+      { id: 'cond-3', name: 'Mountain Climber', prescription: '3 x 30 sec', load: 'Body Weight' },
+    ],
+  },
+  mobility_recovery: {
+    label: 'Mobility',
+    sessionType: 'mobility_recovery',
+    exercises: [
+      { id: 'mob-1', name: 'Hip Flexor Stretch', prescription: '2 x 45 sec / side', load: 'Body Weight' },
+      { id: 'mob-2', name: 'Thoracic Rotation', prescription: '2 x 8 / side', load: 'Body Weight' },
+      { id: 'mob-3', name: 'Hamstring Stretch', prescription: '2 x 45 sec / side', load: 'Body Weight' },
+      { id: 'mob-4', name: 'Dead Bug', prescription: '3 x 8 / side', load: 'Body Weight' },
+    ],
+  },
+  core: {
+    label: 'Core',
+    sessionType: 'core',
+    exercises: [
+      { id: 'core-1', name: 'Plank', prescription: '3 x 30-60 sec', load: 'Body Weight' },
+      { id: 'core-2', name: 'Hanging Leg Raise', prescription: '3 x 8-12', load: 'Body Weight' },
+      { id: 'core-3', name: 'Cable Woodchop', prescription: '3 x 10 / side', load: 'Cable' },
+    ],
+  },
+};
+
+const weeklySplits: Record<number, SessionType[]> = {
+  1: ['full_body'],
+  2: ['upper_body', 'lower_body'],
+  3: ['push', 'pull', 'legs'],
+  4: ['upper_body', 'lower_body', 'push', 'legs'],
+  5: ['push', 'pull', 'legs', 'upper_body', 'conditioning'],
+  6: ['push', 'pull', 'legs', 'upper_body', 'lower_body', 'mobility_recovery'],
+  7: ['upper_body', 'lower_body', 'push', 'pull', 'legs', 'athletic_power', 'mobility_recovery'],
+};
+
+export const sessionTypeOptions = Object.entries(sessionTemplates).map(([value, template]) => ({
+  label: template.label,
+  value: value as SessionType,
+}));
+
+export function buildSessionDay(sessionType: SessionType, index: number): TrainingPlanDay {
+  const template = sessionTemplates[sessionType];
+  return {
+    ...template,
+    id: `day-${index + 1}`,
+    label: `Day ${index + 1} · ${template.label}`,
+    exercises: template.exercises.map((exercise, exerciseIndex) => ({
+      ...exercise,
+      id: `day-${index + 1}-${exerciseIndex + 1}`,
+    })),
+  };
+}
+
+export function buildTrainingPlan(days: number): TrainingPlanDay[] {
+  const safeDays = Math.min(Math.max(Math.round(days) || 3, 1), 7);
+  const split = weeklySplits[safeDays] ?? weeklySplits[3]!;
+  return split.map((sessionType, index) => buildSessionDay(sessionType, index));
+}
+
 export const initialData: VitaData = {
   workoutCompleted: false,
   completedSets: 0,
@@ -51,37 +220,9 @@ export const initialData: VitaData = {
     { id: 'breakfast', name: 'Oats, banana & milk', calories: 410, protein: 18, time: '8:10 AM' },
     { id: 'lunch', name: 'Chicken rice', calories: 620, protein: 36, time: '1:05 PM' },
   ],
-  currentTrainingDay: 'push',
+  currentTrainingDay: 'day-1',
   userProfile: defaultUserProfile,
-  trainingPlan: [
-    {
-      id: 'push',
-      label: 'Push',
-      exercises: [
-        { id: 'push-1', name: 'Bench Press', prescription: '3 x 8-10', load: 'Barbell' },
-        { id: 'push-2', name: 'Shoulder Press', prescription: '3 x 8-10', load: 'Dumbbells' },
-        { id: 'push-3', name: 'Triceps Pushdown', prescription: '3 x 10-12', load: 'Cable' },
-      ],
-    },
-    {
-      id: 'pull',
-      label: 'Pull',
-      exercises: [
-        { id: 'pull-1', name: 'Lat Pulldown', prescription: '3 x 8-12', load: 'Cable' },
-        { id: 'pull-2', name: 'Seated Cable Row', prescription: '3 x 10-12', load: 'Cable' },
-        { id: 'pull-3', name: 'Dumbbell Curl', prescription: '3 x 10-12', load: 'Dumbbells' },
-      ],
-    },
-    {
-      id: 'legs',
-      label: 'Legs',
-      exercises: [
-        { id: 'legs-1', name: 'Squat', prescription: '3 x 8-10', load: 'Barbell' },
-        { id: 'legs-2', name: 'Romanian Deadlift', prescription: '3 x 8-10', load: 'Dumbbells' },
-        { id: 'legs-3', name: 'Leg Press', prescription: '3 x 10-12', load: 'Machine' },
-      ],
-    },
-  ],
+  trainingPlan: buildTrainingPlan(3),
 };
 
 export const targets = { calories: 2200, protein: 130, waterMl: 2500, weeklyWorkouts: 3 };

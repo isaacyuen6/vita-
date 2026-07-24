@@ -23,7 +23,17 @@ import {
   type FoodPhotoEstimate,
 } from '../src/food-analysis';
 import { OnboardingFlow } from '../src/onboarding/OnboardingFlow';
-import { coachReply, readinessScore, targets, type TabId, type TrainingDay } from '../src/vita-data';
+import {
+  buildTrainingPlan,
+  buildSessionDay,
+  coachReply,
+  readinessScore,
+  sessionTypeOptions,
+  targets,
+  type SessionType,
+  type TabId,
+  type TrainingDay,
+} from '../src/vita-data';
 import { useVitaData } from '../src/use-vita-data';
 
 type ConnectionState = 'checking' | 'connected' | 'unavailable';
@@ -253,7 +263,19 @@ export default function HomeScreen() {
     return (
       <OnboardingFlow
         initialProfile={data.userProfile}
-        onFinish={(profile) => setData((current) => ({ ...current, userProfile: profile }))}
+        onFinish={(profile) =>
+          setData((current) => {
+            const trainingPlan = buildTrainingPlan(Number(profile.trainingDays) || 3);
+            return {
+              ...current,
+              completedSets: 0,
+              currentTrainingDay: trainingPlan[0]?.id ?? current.currentTrainingDay,
+              trainingPlan,
+              userProfile: profile,
+              workoutCompleted: false,
+            };
+          })
+        }
       />
     );
   }
@@ -451,6 +473,7 @@ function TrainScreen({
   const [exerciseQuery, setExerciseQuery] = useState('');
   const [manualExerciseName, setManualExerciseName] = useState('');
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
+  const [weeklyDays, setWeeklyDays] = useState(String(data.trainingPlan.length || 3));
   const filteredExercises = findExerciseMatches(exerciseQuery);
   const hasExerciseQuery = exerciseQuery.trim().length >= 2;
   const selectedPlan =
@@ -462,6 +485,30 @@ function TrainScreen({
       ...current,
       completedSets: 0,
       currentTrainingDay: day,
+      workoutCompleted: false,
+    }));
+  }
+
+  function regenerateWeeklyPlan(daysText: string) {
+    const nextPlan = buildTrainingPlan(Number(daysText) || 3);
+    setWeeklyDays(daysText);
+    setData((current) => ({
+      ...current,
+      completedSets: 0,
+      currentTrainingDay: nextPlan[0]?.id ?? current.currentTrainingDay,
+      trainingPlan: nextPlan,
+      userProfile: { ...current.userProfile, trainingDays: daysText },
+      workoutCompleted: false,
+    }));
+  }
+
+  function updateCurrentSessionType(sessionType: SessionType) {
+    setData((current) => ({
+      ...current,
+      completedSets: 0,
+      trainingPlan: current.trainingPlan.map((day, index) =>
+        day.id === current.currentTrainingDay ? buildSessionDay(sessionType, index) : day,
+      ),
       workoutCompleted: false,
     }));
   }
@@ -510,7 +557,25 @@ function TrainScreen({
     <View style={styles.screen}>
       <Text style={styles.kicker}>TRAIN</Text>
       <Text style={styles.pageTitle}>{selectedPlan?.label ?? 'Training'} day</Text>
-      <Text style={styles.pageSubtitle}>Build and remember your Push / Pull / Legs plan</Text>
+      <Text style={styles.pageSubtitle}>Build and remember your weekly session plan</Text>
+
+      <View style={styles.planSetupCard}>
+        <Text style={styles.cardEyebrow}>WEEKLY PLAN</Text>
+        <Text style={styles.exerciseName}>How many days are you targeting?</Text>
+        <View style={styles.dayPicker}>
+          {[1, 2, 3, 4, 5, 6, 7].map((day) => (
+            <Pressable
+              key={day}
+              onPress={() => regenerateWeeklyPlan(String(day))}
+              style={[styles.dayPill, weeklyDays === String(day) && styles.dayPillActive]}
+            >
+              <Text style={[styles.dayPillText, weeklyDays === String(day) && styles.dayPillTextActive]}>
+                {day}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
 
       <View style={styles.exerciseSearch}>
         <MaterialCommunityIcons color="#A78BFA" name="magnify" size={23} />
@@ -592,6 +657,31 @@ function TrainScreen({
             </Text>
           </Pressable>
         ))}
+      </View>
+
+      <View style={styles.sessionTypeCard}>
+        <Text style={styles.cardEyebrow}>SESSION TYPE</Text>
+        <View style={styles.sessionTypeGrid}>
+          {sessionTypeOptions.map((option) => (
+            <Pressable
+              key={option.value}
+              onPress={() => updateCurrentSessionType(option.value)}
+              style={[
+                styles.sessionTypePill,
+                selectedPlan?.sessionType === option.value && styles.sessionTypePillActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.sessionTypeText,
+                  selectedPlan?.sessionType === option.value && styles.sessionTypeTextActive,
+                ]}
+              >
+                {option.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
       </View>
 
       <View style={styles.manualExerciseCard}>
@@ -1682,6 +1772,48 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
   },
   exerciseSearchInput: { color: '#F2EEF8', flex: 1, fontSize: 14, minHeight: 50 },
+  planSetupCard: {
+    backgroundColor: '#15111B',
+    borderColor: '#30263F',
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 12,
+    padding: 15,
+  },
+  dayPicker: { flexDirection: 'row', gap: 8 },
+  dayPill: {
+    alignItems: 'center',
+    backgroundColor: '#211832',
+    borderColor: '#342A42',
+    borderRadius: 13,
+    borderWidth: 1,
+    flex: 1,
+    height: 40,
+    justifyContent: 'center',
+  },
+  dayPillActive: { backgroundColor: '#7C3AED', borderColor: '#A78BFA' },
+  dayPillText: { color: '#A99FC0', fontSize: 13, fontWeight: '800' },
+  dayPillTextActive: { color: '#FFF' },
+  sessionTypeCard: {
+    backgroundColor: '#15111B',
+    borderColor: '#30263F',
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 12,
+    padding: 15,
+  },
+  sessionTypeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  sessionTypePill: {
+    backgroundColor: '#211832',
+    borderColor: '#342A42',
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  sessionTypePillActive: { backgroundColor: '#7C3AED', borderColor: '#A78BFA' },
+  sessionTypeText: { color: '#A99FC0', fontSize: 12, fontWeight: '800' },
+  sessionTypeTextActive: { color: '#FFF' },
   libraryTitle: { color: '#F2EEF8', fontSize: 19, fontWeight: '800' },
   librarySubtitle: { color: '#918A9E', fontSize: 11, marginTop: 4 },
   exerciseLibrary: {

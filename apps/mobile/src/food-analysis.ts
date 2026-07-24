@@ -50,7 +50,7 @@ function extractJson(text: string) {
   const trimmed = text.trim().replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
   if (trimmed.startsWith('{')) return trimmed;
   const match = trimmed.match(/\{[\s\S]*\}/);
-  if (!match) throw new Error('The model did not return nutrition JSON.');
+  if (!match) return '';
   return match[0];
 }
 
@@ -90,15 +90,79 @@ function normalizeEstimate(raw: FoodPhotoEstimate): FoodPhotoEstimate {
   };
 }
 
-function parseEstimate(content: string) {
+function estimateFromWords(description: string): FoodPhotoEstimate {
+  const text = description.toLowerCase();
+  const foods = [
+    { keys: ['chicken rice', 'nasi ayam'], name: 'Chicken rice', calories: 620, proteinG: 36, carbsG: 72, fatG: 18 },
+    { keys: ['fried rice', 'nasi goreng'], name: 'Fried rice', calories: 650, proteinG: 22, carbsG: 85, fatG: 22 },
+    { keys: ['rice'], name: 'Cooked rice', calories: 260, proteinG: 5, carbsG: 56, fatG: 1 },
+    { keys: ['chicken breast', 'grilled chicken'], name: 'Chicken breast', calories: 280, proteinG: 52, carbsG: 0, fatG: 6 },
+    { keys: ['egg'], name: 'Egg', calories: 80, proteinG: 6, carbsG: 1, fatG: 5 },
+    { keys: ['oat', 'oats'], name: 'Oats', calories: 300, proteinG: 10, carbsG: 54, fatG: 6 },
+    { keys: ['banana'], name: 'Banana', calories: 105, proteinG: 1, carbsG: 27, fatG: 0 },
+    { keys: ['beef'], name: 'Beef serving', calories: 330, proteinG: 32, carbsG: 0, fatG: 21 },
+    { keys: ['salmon'], name: 'Salmon serving', calories: 360, proteinG: 34, carbsG: 0, fatG: 22 },
+    { keys: ['sandwich'], name: 'Sandwich', calories: 430, proteinG: 24, carbsG: 42, fatG: 16 },
+    { keys: ['pasta'], name: 'Pasta serving', calories: 520, proteinG: 20, carbsG: 78, fatG: 14 },
+    { keys: ['burger'], name: 'Burger', calories: 650, proteinG: 30, carbsG: 45, fatG: 38 },
+    { keys: ['pizza'], name: 'Pizza slices', calories: 560, proteinG: 24, carbsG: 64, fatG: 22 },
+    { keys: ['protein shake', 'whey'], name: 'Protein shake', calories: 160, proteinG: 25, carbsG: 8, fatG: 3 },
+    { keys: ['salad'], name: 'Salad bowl', calories: 280, proteinG: 12, carbsG: 22, fatG: 16 },
+  ];
+  const matched = foods.filter((food) => food.keys.some((key) => text.includes(key)));
+  const items =
+    matched.length > 0
+      ? matched.map((food) => ({
+          calories: food.calories,
+          carbsG: food.carbsG,
+          confidence: 0.45,
+          fatG: food.fatG,
+          name: food.name,
+          portion: 'Typical visible/entered serving',
+          proteinG: food.proteinG,
+        }))
+      : [
+          {
+            calories: 450,
+            carbsG: 45,
+            confidence: 0.25,
+            fatG: 18,
+            name: description.trim() || 'Meal estimate',
+            portion: 'Generic meal serving',
+            proteinG: 25,
+          },
+        ];
+  return normalizeEstimate({
+    assumptions: ['Fallback estimate used because AI returned invalid nutrition JSON'],
+    confidence: matched.length > 0 ? 0.45 : 0.25,
+    items,
+    notes: 'Estimate is conservative. Edit/confirm if portion size is different.',
+    totals: {
+      calories: items.reduce((sum, item) => sum + item.calories, 0),
+      carbsG: items.reduce((sum, item) => sum + item.carbsG, 0),
+      fatG: items.reduce((sum, item) => sum + item.fatG, 0),
+      proteinG: items.reduce((sum, item) => sum + item.proteinG, 0),
+    },
+  });
+}
+
+function parseEstimate(content: string, fallbackDescription: string) {
   try {
-    return normalizeEstimate(JSON.parse(extractJson(content)) as FoodPhotoEstimate);
+    const json = extractJson(content);
+    if (!json) return estimateFromWords(fallbackDescription || content);
+    return normalizeEstimate(JSON.parse(json) as FoodPhotoEstimate);
   } catch {
-    const repaired = extractJson(content)
+    const extracted = extractJson(content);
+    if (!extracted) return estimateFromWords(fallbackDescription || content);
+    const repaired = extracted
       .replace(/,\s*([}\]])/g, '$1')
       .replace(/[“”]/g, '"')
       .replace(/[‘’]/g, "'");
-    return normalizeEstimate(JSON.parse(repaired) as FoodPhotoEstimate);
+    try {
+      return normalizeEstimate(JSON.parse(repaired) as FoodPhotoEstimate);
+    } catch {
+      return estimateFromWords(fallbackDescription || content);
+    }
   }
 }
 
@@ -148,8 +212,7 @@ export async function estimateFoodPhoto(
     choices?: { message?: { content?: string } }[];
   };
   const content = payload.choices?.[0]?.message?.content;
-  if (!content) throw new Error('Groq did not return a food estimate.');
-  return parseEstimate(content);
+  return parseEstimate(content || '', 'Food photo');
 }
 
 export async function estimateFoodText(
@@ -189,6 +252,5 @@ export async function estimateFoodText(
     choices?: { message?: { content?: string } }[];
   };
   const content = payload.choices?.[0]?.message?.content;
-  if (!content) throw new Error('Groq did not return a meal estimate.');
-  return parseEstimate(content);
+  return parseEstimate(content || '', mealDescription);
 }
