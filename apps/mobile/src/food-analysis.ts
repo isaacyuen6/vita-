@@ -21,8 +21,7 @@ export interface FoodPhotoEstimate {
   };
 }
 
-const groqApiKey = process.env.EXPO_PUBLIC_GROQ_API_KEY;
-const groqVisionModel = 'qwen/qwen3.6-27b';
+const aiProxyUrl = process.env.EXPO_PUBLIC_AI_PROXY_URL ?? '/.netlify/functions/food-analysis';
 const nutritionPrompt = `
 You are Vita AI's food photo nutrition estimator.
 
@@ -43,7 +42,7 @@ Rules:
 `.trim();
 
 export function hasGroqFoodApiKey() {
-  return Boolean(groqApiKey);
+  return Boolean(aiProxyUrl);
 }
 
 function extractJson(text: string) {
@@ -166,91 +165,32 @@ function parseEstimate(content: string, fallbackDescription: string) {
   }
 }
 
-export async function estimateFoodPhoto(
-  base64Image: string,
-  overrideApiKey?: string,
-): Promise<FoodPhotoEstimate> {
-  const apiKey = overrideApiKey?.trim() || groqApiKey;
-  if (!apiKey) {
-    throw new Error('Add a Groq API key before scanning meals.');
-  }
-
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    body: JSON.stringify({
-      max_completion_tokens: 900,
-      messages: [
-        {
-          content: [
-            {
-              text: nutritionPrompt,
-              type: 'text',
-            },
-            {
-              image_url: { url: `data:image/jpeg;base64,${base64Image}` },
-              type: 'image_url',
-            },
-          ],
-          role: 'user',
-        },
-      ],
-      model: groqVisionModel,
-      temperature: 0.2,
-    }),
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
+async function estimateViaProxy(payload: { base64Image?: string; description?: string }) {
+  if (!aiProxyUrl || typeof window === 'undefined') return null;
+  const response = await fetch(aiProxyUrl, {
+    body: JSON.stringify(payload),
+    headers: { 'Content-Type': 'application/json' },
     method: 'POST',
   });
+  if (!response.ok) return null;
+  const data = (await response.json()) as { estimate?: FoodPhotoEstimate };
+  return data.estimate ? normalizeEstimate(data.estimate) : null;
+}
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Groq food analysis failed (${response.status}): ${errorText.slice(0, 180)}`);
-  }
-
-  const payload = (await response.json()) as {
-    choices?: { message?: { content?: string } }[];
-  };
-  const content = payload.choices?.[0]?.message?.content;
-  return parseEstimate(content || '', 'Food photo');
+export async function estimateFoodPhoto(
+  base64Image: string,
+  _overrideApiKey?: string,
+): Promise<FoodPhotoEstimate> {
+  const proxyEstimate = await estimateViaProxy({ base64Image });
+  if (proxyEstimate) return proxyEstimate;
+  return estimateFromWords('Food photo');
 }
 
 export async function estimateFoodText(
   mealDescription: string,
-  overrideApiKey?: string,
+  _overrideApiKey?: string,
 ): Promise<FoodPhotoEstimate> {
-  const apiKey = overrideApiKey?.trim() || groqApiKey;
-  if (!apiKey) {
-    throw new Error('Add a Groq API key before estimating meals.');
-  }
-
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    body: JSON.stringify({
-      max_completion_tokens: 700,
-      messages: [
-        {
-          content: `${nutritionPrompt}\n\nEstimate this typed meal instead of a photo: ${mealDescription}`,
-          role: 'user',
-        },
-      ],
-      model: groqVisionModel,
-      temperature: 0.15,
-    }),
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    method: 'POST',
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Groq meal estimate failed (${response.status}): ${errorText.slice(0, 180)}`);
-  }
-
-  const payload = (await response.json()) as {
-    choices?: { message?: { content?: string } }[];
-  };
-  const content = payload.choices?.[0]?.message?.content;
-  return parseEstimate(content || '', mealDescription);
+  const proxyEstimate = await estimateViaProxy({ description: mealDescription });
+  if (proxyEstimate) return proxyEstimate;
+  return estimateFromWords(mealDescription);
 }

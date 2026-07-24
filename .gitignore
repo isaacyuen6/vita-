@@ -9,6 +9,13 @@ coverage/
 !.env.example
 *.log
 vita-live*.png
+vita-nutrition*.png
+vita-netlify*.png
+.live-check*.cjs
+.live-check*.spec.cjs
+test-results/
+.netlify-*.cjs
+.netlify-*.spec.cjs
 __pycache__/
 .pytest_cache/
 .ruff_cache/

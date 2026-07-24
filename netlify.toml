@@ -1,0 +1,19 @@
+[build]
+  command = "pnpm --filter @vita/api-client... build && pnpm --filter @vita/mobile build && node scripts/prepare-netlify.js"
+  publish = "apps/mobile/dist"
+  functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "22"
+  PNPM_VERSION = "11.15.1"
+  EXPO_PUBLIC_AI_PROXY_URL = "/.netlify/functions/food-analysis"
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

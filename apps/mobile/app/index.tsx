@@ -42,6 +42,8 @@ import { useVitaData } from '../src/use-vita-data';
 type ConnectionState = 'checking' | 'connected' | 'unavailable';
 const apiUrl = process.env.EXPO_PUBLIC_API_URL ?? 'http://127.0.0.1:3000';
 const api = new VitaApiClient(apiUrl);
+const muscleAnatomyImageUrl =
+  'https://upload.wikimedia.org/wikipedia/commons/e/e5/Muscles_anterior_labeled.png';
 const searchResultLimit = 8;
 const popularExerciseNames = [
   'Bench Press',
@@ -859,7 +861,7 @@ function ExerciseDetail({
         <View style={styles.anatomyHeader}>
           <View>
             <Text style={styles.cardEyebrow}>MUSCLES TARGETED</Text>
-            <Text style={styles.anatomyTitle}>{exercise.primary.join(' · ')}</Text>
+            <Text style={styles.anatomyTitle}>{exercise.primary.join(' - ')}</Text>
           </View>
           <View style={styles.primaryLegend}>
             <View style={styles.legendDot} />
@@ -868,12 +870,12 @@ function ExerciseDetail({
         </View>
         <MuscleMap exercise={exercise} />
         <Text style={styles.anatomySource}>
-          Muscle map uses app-native regions matched from each exercise target muscle.
+          Muscle map uses a public-domain Gray's Anatomy/Wikimedia muscle reference with Vita target overlays.
         </Text>
         <View style={styles.muscleSummary}>
           <View style={styles.muscleColumn}>
             <Text style={styles.muscleLabel}>PRIMARY</Text>
-            <Text style={styles.muscleValue}>{exercise.primary.join(', ')}</Text>
+            <Text style={styles.muscleValue}>{exercise.primary.join(' - ')}</Text>
           </View>
           <View style={styles.muscleColumn}>
             <Text style={styles.muscleLabel}>SECONDARY</Text>
@@ -940,6 +942,8 @@ function MuscleMap({ exercise }: { exercise: Exercise }) {
         <Text style={styles.mapStatNumber}>{Math.max(exercise.primary.length + exercise.secondary.length, 1)}</Text>
         <Text style={styles.mapStatLabel}>MUSCLE GROUPS</Text>
       </View>
+
+      <Image resizeMode="contain" source={{ uri: muscleAnatomyImageUrl }} style={styles.anatomyPlate} />
 
       <View style={styles.bodyFigure}>
         <View style={[styles.bodyPart, styles.bodyHead]} />
@@ -1442,10 +1446,10 @@ const styles = StyleSheet.create({
   kicker: { color: '#A78BFA', fontSize: 12, fontWeight: '800', letterSpacing: 1.5 },
   pageTitle: {
     color: '#F8F6FC',
-    fontSize: 34,
+    fontSize: 29,
     fontWeight: '800',
-    letterSpacing: -1,
-    lineHeight: 39,
+    letterSpacing: -0.8,
+    lineHeight: 34,
   },
   pageSubtitle: { color: '#A39DAD', fontSize: 15, lineHeight: 22, marginTop: -10 },
   heroRow: { alignItems: 'center', flexDirection: 'row', gap: 18 },
@@ -1475,7 +1479,7 @@ const styles = StyleSheet.create({
     padding: 22,
   },
   cardEyebrow: { color: '#A99FC0', fontSize: 10, fontWeight: '900', letterSpacing: 1.2 },
-  darkTitle: { color: '#FFFFFF', fontSize: 21, fontWeight: '800', lineHeight: 27 },
+  darkTitle: { color: '#FFFFFF', fontSize: 19, fontWeight: '800', lineHeight: 24 },
   darkBody: { color: '#C5BDCF', fontSize: 14, lineHeight: 21 },
   priorityTitle: { color: '#F2EEF8', fontSize: 21, fontWeight: '800', lineHeight: 27 },
   bodyText: { color: '#AAA2B4', fontSize: 14, lineHeight: 21 },
@@ -1579,7 +1583,7 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 15,
   },
-  trainHeaderTop: { alignItems: 'center', flexDirection: 'row', gap: 12 },
+  trainHeaderTop: { alignItems: 'center', flexDirection: 'row', gap: 12, minWidth: 0 },
   editPlanButton: {
     alignItems: 'center',
     backgroundColor: '#211832',
@@ -1590,6 +1594,7 @@ const styles = StyleSheet.create({
     gap: 6,
     minHeight: 42,
     paddingHorizontal: 12,
+    flexShrink: 0,
   },
   editPlanText: { color: '#C4B5FD', fontSize: 12, fontWeight: '900' },
   planSetupInline: {
@@ -1598,7 +1603,7 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingTop: 12,
   },
-  dayPicker: { flexDirection: 'row', gap: 8 },
+  dayPicker: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   dayPill: {
     alignItems: 'center',
     backgroundColor: '#211832',
@@ -1608,6 +1613,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 40,
     justifyContent: 'center',
+    minWidth: 54,
   },
   dayPillActive: { backgroundColor: '#7C3AED', borderColor: '#A78BFA' },
   dayPillText: { color: '#A99FC0', fontSize: 13, fontWeight: '800' },
@@ -1766,18 +1772,26 @@ const styles = StyleSheet.create({
   mapStatRight: { position: 'absolute', right: 26, top: 32, zIndex: 3 },
   mapStatNumber: { color: '#FFFFFF', fontSize: 24, fontWeight: '900', textAlign: 'center' },
   mapStatLabel: { color: '#A9A2B7', fontSize: 7, fontWeight: '900', letterSpacing: 0.5, marginTop: 2 },
+  anatomyPlate: {
+    height: 340,
+    left: 35,
+    opacity: 0.66,
+    position: 'absolute',
+    top: 70,
+    width: 230,
+  },
   bodyFigure: { alignSelf: 'center', height: 352, marginTop: 64, position: 'relative', width: 190 },
-  bodyPart: { backgroundColor: '#343747', position: 'absolute' },
+  bodyPart: { backgroundColor: 'transparent', position: 'absolute' },
   bodyPartActive: {
-    backgroundColor: '#F43F6B',
+    backgroundColor: 'rgba(244, 63, 107, 0.78)',
     shadowColor: '#F43F6B',
     shadowOpacity: 0.55,
     shadowRadius: 14,
   },
   bodyMuscle: {
-    backgroundColor: '#4B4F62',
-    borderColor: '#202330',
-    borderWidth: 1,
+    backgroundColor: 'transparent',
+    borderColor: 'transparent',
+    borderWidth: 0,
     position: 'absolute',
   },
   bodyMuscleActive: {
@@ -1936,6 +1950,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 22,
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
     padding: 16,
   },
@@ -1948,7 +1963,7 @@ const styles = StyleSheet.create({
     gap: 13,
     padding: 16,
   },
-  goalHeaderRow: { alignItems: 'center', flexDirection: 'row', gap: 12 },
+  goalHeaderRow: { alignItems: 'center', flexDirection: 'row', gap: 12, minWidth: 0 },
   goalProgressRow: {
     alignItems: 'center',
     flexDirection: 'row',
@@ -1956,7 +1971,7 @@ const styles = StyleSheet.create({
   },
   goalConsumed: { color: '#F8F6FC', fontSize: 13, fontWeight: '900' },
   goalRemaining: { color: '#A99FC0', fontSize: 12, fontWeight: '800' },
-  goalModeGrid: { flexDirection: 'row', gap: 8 },
+  goalModeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   goalModeButton: {
     alignItems: 'center',
     backgroundColor: '#211832',
@@ -1966,15 +1981,16 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     minHeight: 42,
+    minWidth: 130,
     paddingHorizontal: 8,
   },
   goalModeButtonActive: { backgroundColor: '#7C3AED', borderColor: '#A78BFA' },
   goalModeText: { color: '#B9B0C8', fontSize: 11, fontWeight: '900', textAlign: 'center' },
   goalModeTextActive: { color: '#FFF' },
   goalSetupStack: { gap: 10 },
-  nutritionMetric: { flex: 1, minWidth: 0 },
-  bigMetric: { color: '#F8F6FC', fontSize: 25, fontWeight: '800', marginVertical: 3 },
-  macroRight: { alignItems: 'flex-start', flex: 1, minWidth: 0 },
+  nutritionMetric: { flex: 1, minWidth: 140 },
+  bigMetric: { color: '#F8F6FC', fontSize: 22, fontWeight: '800', marginVertical: 3 },
+  macroRight: { alignItems: 'flex-start', flex: 1, minWidth: 140 },
   scanCard: {
     alignItems: 'center',
     backgroundColor: '#1D1727',
