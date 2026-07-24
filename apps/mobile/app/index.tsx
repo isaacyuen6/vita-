@@ -14,6 +14,7 @@ import { VitaApiClient } from '@vita/api-client';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { exerciseLibrary } from '../src/exercise-library';
 import type { Exercise } from '../src/exercise-types';
+import { OnboardingFlow } from '../src/onboarding/OnboardingFlow';
 import { coachReply, readinessScore, targets, type TabId, type TrainingDay } from '../src/vita-data';
 import { useVitaData } from '../src/use-vita-data';
 
@@ -233,6 +234,15 @@ export default function HomeScreen() {
   const protein = data.meals.reduce((sum, meal) => sum + meal.protein, 0);
   const score = readinessScore(data);
 
+  if (!data.userProfile.onboardingCompleted) {
+    return (
+      <OnboardingFlow
+        initialProfile={data.userProfile}
+        onFinish={(profile) => setData((current) => ({ ...current, userProfile: profile }))}
+      />
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.appShell}>
@@ -272,7 +282,9 @@ export default function HomeScreen() {
           {tab === 'eat' && (
             <EatScreen data={data} setData={setData} calories={calories} protein={protein} />
           )}
-          {tab === 'progress' && <ProgressScreen data={data} score={score} protein={protein} />}
+          {tab === 'progress' && (
+            <ProgressScreen data={data} setData={setData} score={score} protein={protein} />
+          )}
           {tab === 'coach' && <CoachScreen data={data} />}
         </ScrollView>
 
@@ -960,10 +972,12 @@ function EatScreen({
 
 function ProgressScreen({
   data,
+  setData,
   score,
   protein,
 }: {
   data: ReturnType<typeof useVitaData>['data'];
+  setData: ReturnType<typeof useVitaData>['setData'];
   score: number;
   protein: number;
 }) {
@@ -972,6 +986,22 @@ function ProgressScreen({
       <Text style={styles.kicker}>PROGRESS</Text>
       <Text style={styles.pageTitle}>Small wins add up</Text>
       <Text style={styles.pageSubtitle}>This week’s summary uses only data you logged.</Text>
+
+      <Pressable
+        onPress={() =>
+          setData((current) => ({
+            ...current,
+            userProfile: { ...current.userProfile, onboardingCompleted: false },
+          }))
+        }
+        style={styles.profileEditCard}
+      >
+        <View style={styles.exerciseCopy}>
+          <Text style={styles.exerciseName}>Profile setup</Text>
+          <Text style={styles.mutedText}>Edit onboarding answers and refresh Vita personalization.</Text>
+        </View>
+        <MaterialCommunityIcons color="#C4B5FD" name="account-edit" size={24} />
+      </Pressable>
 
       <View style={styles.goalCard}>
         <View style={styles.goalTop}>
@@ -1749,6 +1779,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 14,
     padding: 20,
+  },
+  profileEditCard: {
+    alignItems: 'center',
+    backgroundColor: '#181321',
+    borderColor: '#30263F',
+    borderRadius: 18,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+    padding: 16,
   },
   goalTop: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   goalPercent: { color: '#A78BFA', fontSize: 28, fontWeight: '800' },

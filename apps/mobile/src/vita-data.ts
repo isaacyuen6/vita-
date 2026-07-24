@@ -1,3 +1,5 @@
+import { defaultUserProfile, type UserProfile } from './onboarding/types';
+
 export type TabId = 'today' | 'train' | 'eat' | 'progress' | 'coach';
 
 export interface Meal {
@@ -31,6 +33,7 @@ export interface VitaData {
   waterMl: number;
   meals: Meal[];
   currentTrainingDay: TrainingDay;
+  userProfile: UserProfile;
   trainingPlan: TrainingPlanDay[];
 }
 
@@ -45,6 +48,7 @@ export const initialData: VitaData = {
     { id: 'lunch', name: 'Chicken rice', calories: 620, protein: 36, time: '1:05 PM' },
   ],
   currentTrainingDay: 'push',
+  userProfile: defaultUserProfile,
   trainingPlan: [
     {
       id: 'push',
