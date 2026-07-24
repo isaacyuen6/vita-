@@ -4,15 +4,13 @@ export type WeightUnit = 'kg' | 'lbs';
 
 export type MainGoal =
   | 'lose_fat'
-  | 'build_muscle'
-  | 'gain_weight'
+  | 'build_muscle_mass'
   | 'increase_strength'
-  | 'improve_fitness'
-  | 'jump_higher'
-  | 'basketball_performance'
+  | 'athletic_performance'
   | 'improve_endurance'
   | 'improve_mobility'
-  | 'sleep_better';
+  | 'sleep_recovery'
+  | 'overall_health';
 
 export type TrainingExperience =
   | 'completely_new'
@@ -73,7 +71,7 @@ export interface UserProfile {
   experience: TrainingExperience | '';
   firstName: string;
   gender: Gender;
-  goal: MainGoal | '';
+  goals: MainGoal[];
   heightCm: string;
   heightFeet: string;
   heightInches: string;
@@ -100,7 +98,7 @@ export const defaultUserProfile: UserProfile = {
   experience: '',
   firstName: '',
   gender: '',
-  goal: '',
+  goals: [],
   heightCm: '',
   heightFeet: '',
   heightInches: '',

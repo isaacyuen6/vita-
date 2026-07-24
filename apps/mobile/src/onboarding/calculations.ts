@@ -39,16 +39,10 @@ function activityMultiplier(activity: ActivityLevel | '') {
   }
 }
 
-function goalAdjustment(goal: MainGoal | '') {
-  switch (goal) {
-    case 'lose_fat':
-      return -350;
-    case 'gain_weight':
-    case 'build_muscle':
-      return 250;
-    default:
-      return 0;
-  }
+function goalAdjustment(goals: MainGoal[]) {
+  if (goals.includes('lose_fat')) return -350;
+  if (goals.includes('build_muscle_mass')) return 250;
+  return 0;
 }
 
 export function estimateCalories(profile: UserProfile) {
@@ -58,12 +52,12 @@ export function estimateCalories(profile: UserProfile) {
   if (!age || !heightCm || !weightKg) return null;
   const sexOffset = profile.gender === 'female' ? -161 : 5;
   const bmr = 10 * weightKg + 6.25 * heightCm - 5 * age + sexOffset;
-  return Math.round((bmr * activityMultiplier(profile.activityLevel) + goalAdjustment(profile.goal)) / 10) * 10;
+  return Math.round((bmr * activityMultiplier(profile.activityLevel) + goalAdjustment(profile.goals)) / 10) * 10;
 }
 
 export function estimateProtein(profile: UserProfile) {
   const weightKg = weightInKg(profile);
   if (!weightKg) return null;
-  const multiplier = profile.goal === 'lose_fat' || profile.goal === 'build_muscle' ? 1.9 : 1.6;
+  const multiplier = profile.goals.includes('lose_fat') || profile.goals.includes('build_muscle_mass') ? 1.9 : 1.6;
   return Math.round(weightKg * multiplier);
 }

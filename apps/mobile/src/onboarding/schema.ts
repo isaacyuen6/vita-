@@ -34,20 +34,18 @@ export const onboardingSchema = z
       .or(z.literal('')),
     firstName: z.string().trim().min(1, 'First name is required').max(50, 'Maximum 50 characters'),
     gender: z.enum(['male', 'female', 'non_binary', 'prefer_not_to_say']).or(z.literal('')),
-    goal: z
-      .enum([
+    goals: z.array(
+      z.enum([
         'lose_fat',
-        'build_muscle',
-        'gain_weight',
+        'build_muscle_mass',
         'increase_strength',
-        'improve_fitness',
-        'jump_higher',
-        'basketball_performance',
+        'athletic_performance',
         'improve_endurance',
         'improve_mobility',
-        'sleep_better',
-      ])
-      .or(z.literal('')),
+        'sleep_recovery',
+        'overall_health',
+      ]),
+    ),
     heightCm: z.string().trim(),
     heightFeet: z.string().trim(),
     heightInches: z.string().trim(),
@@ -77,7 +75,7 @@ export const onboardingSchema = z
     if (value.weightUnit === 'lbs' && Number(value.weightLbs) <= 0) {
       ctx.addIssue({ code: 'custom', message: 'Weight is required', path: ['weightLbs'] });
     }
-    if (!value.goal) ctx.addIssue({ code: 'custom', message: 'Choose a goal', path: ['goal'] });
+    if (!value.goals.length) ctx.addIssue({ code: 'custom', message: 'Choose at least one goal', path: ['goals'] });
     if (!value.experience) ctx.addIssue({ code: 'custom', message: 'Choose an experience level', path: ['experience'] });
     if (!value.sleepAverage) ctx.addIssue({ code: 'custom', message: 'Choose average sleep', path: ['sleepAverage'] });
     if (!value.activityLevel) ctx.addIssue({ code: 'custom', message: 'Choose activity level', path: ['activityLevel'] });

@@ -57,15 +57,13 @@ type StepId = (typeof steps)[number];
 
 const goalOptions: SelectOption<MainGoal>[] = [
   { icon: 'fire', label: 'Lose Fat', value: 'lose_fat' },
-  { icon: 'arm-flex', label: 'Build Muscle', value: 'build_muscle' },
-  { icon: 'scale-bathroom', label: 'Gain Weight', value: 'gain_weight' },
+  { icon: 'arm-flex', label: 'Build Muscle & Mass', value: 'build_muscle_mass' },
   { icon: 'weight-lifter', label: 'Increase Strength', value: 'increase_strength' },
-  { icon: 'heart-pulse', label: 'Improve Fitness', value: 'improve_fitness' },
-  { icon: 'basketball-hoop', label: 'Jump Higher', value: 'jump_higher' },
-  { icon: 'basketball', label: 'Basketball Performance', value: 'basketball_performance' },
+  { icon: 'run-fast', label: 'Athletic Performance', value: 'athletic_performance' },
   { icon: 'run-fast', label: 'Improve Endurance', value: 'improve_endurance' },
   { icon: 'human-handsup', label: 'Improve Mobility', value: 'improve_mobility' },
-  { icon: 'sleep', label: 'Sleep Better', value: 'sleep_better' },
+  { icon: 'sleep', label: 'Sleep & Recovery', value: 'sleep_recovery' },
+  { icon: 'heart-pulse', label: 'Overall Health & Wellness', value: 'overall_health' },
 ];
 
 const experienceOptions: SelectOption<TrainingExperience>[] = [
@@ -150,7 +148,7 @@ const fieldsByStep: Record<StepId, (keyof OnboardingFormValues)[]> = {
   basic: ['age', 'gender', 'heightCm', 'heightFeet', 'heightInches', 'heightUnit', 'weightKg', 'weightLbs', 'weightUnit'],
   equipment: ['equipment'],
   experience: ['experience'],
-  goal: ['goal'],
+  goal: ['goals'],
   injuries: ['avoidAreas', 'avoidNotes'],
   lifestyle: ['sleepAverage', 'activityLevel', 'occupation'],
   location: ['workoutLocations'],
@@ -357,8 +355,18 @@ export function OnboardingFlow({
 
               {currentStep === 'goal' && (
                 <>
-                  <QuestionHeader eyebrow="PRIMARY GOAL" title="What should Vita optimize for first?" />
-                  <Controller control={form.control} name="goal" render={({ field }) => <SingleSelectCards onChange={field.onChange} options={goalOptions} value={field.value} />} />
+                  <QuestionHeader
+                    eyebrow="PRIMARY GOALS"
+                    subtitle="Choose every outcome you care about. Vita will balance the plan around your combination."
+                    title="What should Vita optimize for?"
+                  />
+                  <Controller
+                    control={form.control}
+                    name="goals"
+                    render={({ field }) => (
+                      <MultiSelectCards onChange={field.onChange} options={goalOptions} value={field.value} />
+                    )}
+                  />
                 </>
               )}
 
@@ -441,7 +449,14 @@ export function OnboardingFlow({
                   <View style={styles.summaryCard}>
                     <SummaryRow label="Name" value={values.firstName} />
                     <SummaryRow label="BMI" value={completion.bmiLabel} />
-                    <SummaryRow label="Goal" value={labelFor(goalOptions, values.goal)} />
+                    <SummaryRow
+                      label="Goals"
+                      value={
+                        values.goals.length
+                          ? values.goals.map((goal) => labelFor(goalOptions, goal)).join(', ')
+                          : 'Not set'
+                      }
+                    />
                     <SummaryRow label="Training" value={labelFor(experienceOptions, values.experience)} />
                     <SummaryRow label="Availability" value={`${values.trainingDays} Days`} />
                     <SummaryRow label="Equipment" value={values.equipment.includes('none') ? 'None' : `${values.equipment.length} selected`} />
