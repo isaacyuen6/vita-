@@ -159,7 +159,11 @@ export function ContinueButton({
   onPress: () => void;
 }) {
   return (
-    <Pressable onPress={onPress} style={[styles.continueButton, disabled && styles.continueDisabled]}>
+    <Pressable
+      disabled={disabled}
+      onPress={onPress}
+      style={[styles.continueButton, disabled && styles.continueDisabled]}
+    >
       <Text style={styles.continueText}>{label}</Text>
       <MaterialCommunityIcons color="#FFFFFF" name="arrow-right" size={19} />
     </Pressable>
@@ -176,7 +180,16 @@ export function BackButton({ disabled, onPress }: { disabled?: boolean; onPress:
 }
 
 const styles = StyleSheet.create({
-  backButton: { alignItems: 'center', flexDirection: 'row', gap: 6, minHeight: 44 },
+  backButton: {
+    alignItems: 'center',
+    borderRadius: 14,
+    flexDirection: 'row',
+    gap: 7,
+    justifyContent: 'center',
+    minHeight: 48,
+    minWidth: 92,
+    paddingHorizontal: 14,
+  },
   backDisabled: { opacity: 0.25 },
   backText: { color: '#C4B5FD', fontSize: 13, fontWeight: '800' },
   continueButton: {
@@ -184,15 +197,27 @@ const styles = StyleSheet.create({
     backgroundColor: '#7C3AED',
     borderRadius: 18,
     flexDirection: 'row',
-    gap: 8,
+    gap: 10,
     justifyContent: 'center',
-    minHeight: 54,
+    minHeight: 56,
+    minWidth: 156,
+    paddingHorizontal: 24,
+    shadowColor: '#7C3AED',
+    shadowOpacity: 0.32,
+    shadowRadius: 18,
   },
   continueDisabled: { opacity: 0.45 },
-  continueText: { color: '#FFFFFF', fontSize: 15, fontWeight: '900' },
+  continueText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '900',
+    includeFontPadding: false,
+    lineHeight: 19,
+    textAlign: 'center',
+  },
   errorText: { color: '#FCA5A5', fontSize: 11, fontWeight: '700', marginTop: 5 },
   eyebrow: { color: '#A78BFA', fontSize: 11, fontWeight: '900', letterSpacing: 1.1 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'space-between' },
   header: { gap: 8 },
   input: {
     backgroundColor: '#15111B',
@@ -205,7 +230,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
   },
   inputError: { borderColor: '#EF4444' },
-  inputGroup: { gap: 7 },
+  inputGroup: { flex: 1, gap: 7, minWidth: 0 },
   inputLabel: { color: '#C9C1D6', fontSize: 12, fontWeight: '800' },
   optionCard: {
     backgroundColor: '#15111B',
@@ -213,24 +238,46 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     gap: 7,
+    justifyContent: 'center',
     minHeight: 86,
     padding: 14,
-    width: '48%',
+    width: '48.5%',
   },
   optionCardActive: { backgroundColor: '#7C3AED', borderColor: '#C4B5FD' },
   optionDescription: { color: '#AFA6BC', fontSize: 11, lineHeight: 16 },
-  optionLabel: { color: '#F2EEF8', fontSize: 13, fontWeight: '900' },
+  optionLabel: { color: '#F2EEF8', fontSize: 13, fontWeight: '900', lineHeight: 17 },
   optionLabelActive: { color: '#FFFFFF' },
   optionTop: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   progressFill: { backgroundColor: '#A78BFA', borderRadius: 999, height: '100%' },
-  progressText: { color: '#C9C1D6', fontSize: 11, fontWeight: '900', width: 38 },
+  progressText: { color: '#C9C1D6', fontSize: 11, fontWeight: '900', textAlign: 'right', width: 38 },
   progressTrack: { backgroundColor: '#241B34', borderRadius: 999, flex: 1, height: 8, overflow: 'hidden' },
   progressWrap: { alignItems: 'center', flexDirection: 'row', gap: 10 },
   subtitle: { color: '#AFA6BC', fontSize: 14, lineHeight: 21 },
   title: { color: '#FFFFFF', fontSize: 30, fontWeight: '900', lineHeight: 36 },
-  unitOption: { alignItems: 'center', borderRadius: 12, flex: 1, paddingVertical: 9 },
+  unitOption: {
+    alignItems: 'center',
+    borderRadius: 12,
+    flex: 1,
+    justifyContent: 'center',
+    minHeight: 42,
+    paddingHorizontal: 10,
+  },
   unitOptionActive: { backgroundColor: '#7C3AED' },
-  unitPicker: { backgroundColor: '#15111B', borderRadius: 14, flexDirection: 'row', padding: 5 },
-  unitText: { color: '#AFA6BC', fontSize: 12, fontWeight: '900' },
+  unitPicker: {
+    alignItems: 'center',
+    backgroundColor: '#15111B',
+    borderRadius: 16,
+    flexDirection: 'row',
+    minHeight: 54,
+    padding: 6,
+  },
+  unitText: {
+    color: '#AFA6BC',
+    fontSize: 12,
+    fontWeight: '900',
+    includeFontPadding: false,
+    lineHeight: 16,
+    textAlign: 'center',
+  },
   unitTextActive: { color: '#FFFFFF' },
 });

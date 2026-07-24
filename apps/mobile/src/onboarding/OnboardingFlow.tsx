@@ -488,7 +488,13 @@ const styles = StyleSheet.create({
   metricHint: { color: '#A78BFA', fontSize: 13, fontWeight: '900', marginTop: 3 },
   metricLabel: { color: '#AFA6BC', fontSize: 11, fontWeight: '900', letterSpacing: 1 },
   metricValue: { color: '#FFFFFF', fontSize: 34, fontWeight: '900', marginTop: 4 },
-  nav: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
+  nav: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 14,
+    justifyContent: 'space-between',
+    paddingTop: 2,
+  },
   orbit: {
     alignItems: 'center',
     alignSelf: 'center',
@@ -501,7 +507,7 @@ const styles = StyleSheet.create({
     shadowRadius: 24,
     width: 104,
   },
-  row: { flexDirection: 'row', gap: 10 },
+  row: { alignItems: 'flex-start', flexDirection: 'row', gap: 10 },
   safe: { backgroundColor: '#08060D', flex: 1 },
   secondaryAction: { color: '#AFA6BC', fontSize: 13, fontWeight: '800', textAlign: 'center' },
   shell: { flex: 1, gap: 18, marginHorizontal: 'auto' as never, maxWidth: 620, padding: 22, width: '100%' },
