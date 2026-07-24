@@ -499,7 +499,7 @@ function TrainScreen({
         <TextInput
           accessibilityLabel="Search exercises or muscles"
           onChangeText={setExerciseQuery}
-          placeholder="Search common exercises"
+          placeholder="Search exercises to add"
           placeholderTextColor="#746D80"
           style={styles.exerciseSearchInput}
           value={exerciseQuery}
@@ -511,7 +511,7 @@ function TrainScreen({
         )}
       </View>
 
-      {hasExerciseQuery ? (
+      {hasExerciseQuery && (
         <>
           <View>
             <Text style={styles.libraryTitle}>Top exercise matches</Text>
@@ -554,11 +554,6 @@ function TrainScreen({
             )}
           </View>
         </>
-      ) : (
-        <View style={styles.searchPromptCard}>
-          <MaterialCommunityIcons color="#A78BFA" name="magnify" size={22} />
-          <Text style={styles.searchPromptText}>Search to add common exercises to your plan.</Text>
-        </View>
       )}
 
       <SectionTitle title="Today?s session" />
@@ -1450,17 +1445,6 @@ const styles = StyleSheet.create({
   },
   iconButton: { padding: 6 },
   emptySearch: { alignItems: 'center', gap: 5, padding: 24 },
-  searchPromptCard: {
-    alignItems: 'center',
-    backgroundColor: '#120E19',
-    borderColor: '#2D2439',
-    borderRadius: 16,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 10,
-    padding: 14,
-  },
-  searchPromptText: { color: '#AFA6BC', flex: 1, fontSize: 12, fontWeight: '700' },
   planTabs: {
     backgroundColor: '#15111B',
     borderColor: '#292133',
