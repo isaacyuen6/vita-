@@ -16,7 +16,12 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import * as ImagePicker from 'expo-image-picker';
 import { exerciseLibrary } from '../src/exercise-library';
 import type { Exercise } from '../src/exercise-types';
-import { estimateFoodPhoto, hasGroqFoodApiKey, type FoodPhotoEstimate } from '../src/food-analysis';
+import {
+  estimateFoodPhoto,
+  estimateFoodText,
+  hasGroqFoodApiKey,
+  type FoodPhotoEstimate,
+} from '../src/food-analysis';
 import { OnboardingFlow } from '../src/onboarding/OnboardingFlow';
 import { coachReply, readinessScore, targets, type TabId, type TrainingDay } from '../src/vita-data';
 import { useVitaData } from '../src/use-vita-data';
@@ -236,6 +241,13 @@ export default function HomeScreen() {
   const calories = data.meals.reduce((sum, meal) => sum + meal.calories, 0);
   const protein = data.meals.reduce((sum, meal) => sum + meal.protein, 0);
   const score = readinessScore(data);
+  const dayConsumptionPercent = Math.round(
+    ((Math.min(calories / targets.calories, 1) +
+      Math.min(protein / targets.protein, 1) +
+      Math.min(data.waterMl / targets.waterMl, 1)) /
+      3) *
+      100,
+  );
 
   if (!data.userProfile.onboardingCompleted) {
     return (
@@ -277,6 +289,7 @@ export default function HomeScreen() {
               calories={calories}
               protein={protein}
               score={score}
+              dayConsumptionPercent={dayConsumptionPercent}
               setTab={setTab}
               data={data}
             />
@@ -323,12 +336,14 @@ function TodayScreen({
   calories,
   protein,
   score,
+  dayConsumptionPercent,
   setTab,
   data,
 }: {
   calories: number;
   protein: number;
   score: number;
+  dayConsumptionPercent: number;
   setTab: (tab: TabId) => void;
   data: ReturnType<typeof useVitaData>['data'];
 }) {
@@ -339,7 +354,7 @@ function TodayScreen({
           <Text style={styles.kicker}>GOOD AFTERNOON</Text>
           <Text style={styles.pageTitle}>Here’s your plan for today.</Text>
         </View>
-        <ScoreRing score={score} />
+        <DayRing percent={dayConsumptionPercent} />
       </View>
 
       <View style={styles.priorityCard}>
@@ -818,39 +833,88 @@ function EatScreen({
 }) {
   const [showForm, setShowForm] = useState(false);
   const [mealName, setMealName] = useState('');
-  const [mealCalories, setMealCalories] = useState('');
-  const [mealProtein, setMealProtein] = useState('');
+  const [mealItems, setMealItems] = useState<string[]>(['']);
+  const [manualEstimate, setManualEstimate] = useState<FoodPhotoEstimate | null>(null);
   const [foodEstimate, setFoodEstimate] = useState<FoodPhotoEstimate | null>(null);
   const [foodPhotoUri, setFoodPhotoUri] = useState('');
   const [foodScanError, setFoodScanError] = useState('');
+  const [manualMealError, setManualMealError] = useState('');
   const [groqKey, setGroqKey] = useState(() =>
     Platform.OS === 'web' ? window.localStorage.getItem('vita-groq-key') ?? '' : '',
   );
   const [isScanningFood, setIsScanningFood] = useState(false);
+  const [isEstimatingManualMeal, setIsEstimatingManualMeal] = useState(false);
   const needsGroqKey = !hasGroqFoodApiKey();
 
-  function addMeal() {
-    const parsedCalories = Number(mealCalories);
-    const parsedProtein = Number(mealProtein);
-    if (!mealName.trim() || !Number.isFinite(parsedCalories) || !Number.isFinite(parsedProtein))
-      return;
+  function saveEstimate(
+    estimate: FoodPhotoEstimate,
+    fallbackName: string,
+    source: 'manual' | 'photo',
+  ) {
+    const mealLabel =
+      mealName.trim() ||
+      (estimate.items.length > 0
+        ? estimate.items.map((item) => item.name).slice(0, 3).join(', ')
+        : fallbackName);
     setData((current) => ({
       ...current,
       meals: [
         ...current.meals,
         {
           id: `${Date.now()}`,
-          name: mealName.trim(),
-          calories: parsedCalories,
-          protein: parsedProtein,
+          name: mealLabel,
+          calories: estimate.totals.calories,
+          carbs: estimate.totals.carbsG,
+          confidence: estimate.confidence,
+          fat: estimate.totals.fatG,
+          protein: estimate.totals.proteinG,
+          source,
           time: 'Just now',
         },
       ],
     }));
     setMealName('');
-    setMealCalories('');
-    setMealProtein('');
+    setMealItems(['']);
+    setManualEstimate(null);
     setShowForm(false);
+  }
+
+  function updateMealItem(index: number, value: string) {
+    setMealItems((items) => items.map((item, itemIndex) => (itemIndex === index ? value : item)));
+    setManualEstimate(null);
+  }
+
+  function addMealItem() {
+    setMealItems((items) => [...items, '']);
+  }
+
+  function removeMealItem(index: number) {
+    setMealItems((items) => {
+      const next = items.filter((_, itemIndex) => itemIndex !== index);
+      return next.length ? next : [''];
+    });
+    setManualEstimate(null);
+  }
+
+  async function estimateManualMeal() {
+    const itemText = mealItems.map((item) => item.trim()).filter(Boolean);
+    const description = [mealName.trim(), ...itemText].filter(Boolean).join(', ');
+    if (!description) {
+      setManualMealError('Enter a meal name or at least one food item first.');
+      return;
+    }
+    setManualMealError('');
+    setIsEstimatingManualMeal(true);
+    try {
+      if (needsGroqKey && Platform.OS === 'web') {
+        window.localStorage.setItem('vita-groq-key', groqKey.trim());
+      }
+      setManualEstimate(await estimateFoodText(description, groqKey));
+    } catch (error) {
+      setManualMealError(error instanceof Error ? error.message : 'Meal estimate failed.');
+    } finally {
+      setIsEstimatingManualMeal(false);
+    }
   }
 
   async function analyzeFood(source: 'camera' | 'library') {
@@ -903,27 +967,7 @@ function EatScreen({
 
   function saveFoodEstimate() {
     if (!foodEstimate) return;
-    const mealLabel =
-      foodEstimate.items.length > 0
-        ? foodEstimate.items.map((item) => item.name).slice(0, 3).join(', ')
-        : 'Photo meal estimate';
-    setData((current) => ({
-      ...current,
-      meals: [
-        ...current.meals,
-        {
-          id: `${Date.now()}`,
-          name: mealLabel,
-          calories: foodEstimate.totals.calories,
-          carbs: foodEstimate.totals.carbsG,
-          confidence: foodEstimate.confidence,
-          fat: foodEstimate.totals.fatG,
-          protein: foodEstimate.totals.proteinG,
-          source: 'photo',
-          time: 'Just now',
-        },
-      ],
-    }));
+    saveEstimate(foodEstimate, 'Photo meal estimate', 'photo');
     setFoodEstimate(null);
     setFoodPhotoUri('');
   }
@@ -935,7 +979,7 @@ function EatScreen({
       <Text style={styles.pageSubtitle}>Estimates stay editable until you confirm them.</Text>
 
       <View style={styles.nutritionHero}>
-        <View>
+        <View style={styles.nutritionMetric}>
           <Text style={styles.cardEyebrow}>CALORIES</Text>
           <Text style={styles.bigMetric}>{calories}</Text>
           <Text style={styles.mutedText}>
@@ -1058,33 +1102,82 @@ function EatScreen({
           <TextInput
             accessibilityLabel="Meal name"
             onChangeText={setMealName}
-            placeholder="Meal name"
+            placeholder="Meal name, e.g. chicken rice"
             placeholderTextColor="#746D80"
             style={styles.input}
             value={mealName}
           />
-          <View style={styles.twoColumns}>
-            <TextInput
-              accessibilityLabel="Calories"
-              keyboardType="numeric"
-              onChangeText={setMealCalories}
-              placeholder="Calories"
-              placeholderTextColor="#746D80"
-              style={[styles.input, styles.flexInput]}
-              value={mealCalories}
-            />
-            <TextInput
-              accessibilityLabel="Protein grams"
-              keyboardType="numeric"
-              onChangeText={setMealProtein}
-              placeholder="Protein g"
-              placeholderTextColor="#746D80"
-              style={[styles.input, styles.flexInput]}
-              value={mealProtein}
-            />
+          <View style={styles.manualItems}>
+            {mealItems.map((item, index) => (
+              <View key={index} style={styles.manualItemRow}>
+                <TextInput
+                  accessibilityLabel={`Food item ${index + 1}`}
+                  onChangeText={(value) => updateMealItem(index, value)}
+                  placeholder={index === 0 ? 'Food item, e.g. grilled chicken breast' : 'Another item'}
+                  placeholderTextColor="#746D80"
+                  style={[styles.input, styles.flexInput]}
+                  value={item}
+                />
+                <Pressable
+                  accessibilityLabel={`Remove food item ${index + 1}`}
+                  onPress={() => removeMealItem(index)}
+                  style={styles.removeItemButton}
+                >
+                  <MaterialCommunityIcons color="#B79CFF" name="minus" size={18} />
+                </Pressable>
+              </View>
+            ))}
           </View>
-          <Pressable onPress={addMeal} style={styles.secondaryButton}>
-            <Text style={styles.secondaryButtonText}>Save confirmed meal</Text>
+          <Pressable onPress={addMealItem} style={styles.addItemButton}>
+            <MaterialCommunityIcons color="#B79CFF" name="plus" size={18} />
+            <Text style={styles.secondaryButtonText}>Add item</Text>
+          </Pressable>
+          {!!manualMealError && (
+            <View style={styles.errorCard}>
+              <Text style={styles.mutedText}>{manualMealError}</Text>
+            </View>
+          )}
+          {isEstimatingManualMeal && (
+            <View style={styles.analysisCard}>
+              <ActivityIndicator color="#C084FC" />
+              <Text style={styles.exerciseName}>Estimating meal…</Text>
+            </View>
+          )}
+          {manualEstimate && (
+            <View style={styles.analysisCard}>
+              <View>
+                <Text style={styles.cardEyebrow}>AI MEAL ESTIMATE</Text>
+                <Text style={styles.sectionTitle}>{manualEstimate.totals.calories} kcal</Text>
+                <Text style={styles.mutedText}>
+                  P {manualEstimate.totals.proteinG}g · C {manualEstimate.totals.carbsG}g · F{' '}
+                  {manualEstimate.totals.fatG}g
+                </Text>
+              </View>
+              <View style={styles.foodItems}>
+                {manualEstimate.items.map((item, index) => (
+                  <View key={`${item.name}-${index}`} style={styles.foodItemRow}>
+                    <View style={styles.exerciseCopy}>
+                      <Text style={styles.exerciseName}>{item.name}</Text>
+                      <Text style={styles.mutedText}>{item.portion}</Text>
+                    </View>
+                    <Text style={styles.foodCalories}>{item.calories} kcal</Text>
+                  </View>
+                ))}
+              </View>
+              <Pressable
+                onPress={() => saveEstimate(manualEstimate, 'Manual meal estimate', 'manual')}
+                style={styles.secondaryButton}
+              >
+                <Text style={styles.secondaryButtonText}>Save estimated meal</Text>
+              </Pressable>
+            </View>
+          )}
+          <Pressable
+            disabled={isEstimatingManualMeal}
+            onPress={() => void estimateManualMeal()}
+            style={[styles.secondaryButton, isEstimatingManualMeal && styles.disabledButton]}
+          >
+            <Text style={styles.secondaryButtonText}>Estimate with AI</Text>
           </Pressable>
         </View>
       )}
@@ -1297,11 +1390,11 @@ function CoachScreen({ data }: { data: ReturnType<typeof useVitaData>['data'] })
   );
 }
 
-function ScoreRing({ score }: { score: number }) {
+function DayRing({ percent }: { percent: number }) {
   return (
     <View style={styles.scoreRing}>
-      <Text style={styles.scoreValue}>{score}</Text>
-      <Text style={styles.scoreLabel}>READY</Text>
+      <Text style={styles.scoreValue}>{percent}%</Text>
+      <Text style={styles.scoreLabel}>DAY</Text>
     </View>
   );
 }
@@ -1864,11 +1957,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 22,
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 20,
+    gap: 12,
+    padding: 16,
   },
-  bigMetric: { color: '#F8F6FC', fontSize: 30, fontWeight: '800', marginVertical: 3 },
-  macroRight: { alignItems: 'flex-end' },
+  nutritionMetric: { flex: 1, minWidth: 0 },
+  bigMetric: { color: '#F8F6FC', fontSize: 25, fontWeight: '800', marginVertical: 3 },
+  macroRight: { alignItems: 'flex-start', flex: 1, minWidth: 0 },
   scanCard: {
     alignItems: 'center',
     backgroundColor: '#1D1727',
@@ -1955,6 +2049,23 @@ const styles = StyleSheet.create({
   foodCalories: { color: '#F8F6FC', fontSize: 13, fontWeight: '800' },
   estimateDisclaimer: { color: '#918A9E', fontSize: 11, lineHeight: 16 },
   formCard: { backgroundColor: '#15111B', borderRadius: 18, gap: 11, padding: 15 },
+  manualItems: { gap: 10 },
+  manualItemRow: { alignItems: 'center', flexDirection: 'row', gap: 8 },
+  removeItemButton: {
+    alignItems: 'center',
+    backgroundColor: '#241B34',
+    borderRadius: 12,
+    height: 46,
+    justifyContent: 'center',
+    width: 46,
+  },
+  addItemButton: {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    gap: 6,
+    paddingVertical: 6,
+  },
   input: {
     backgroundColor: '#0F0C14',
     borderColor: '#342A42',

@@ -151,3 +151,44 @@ export async function estimateFoodPhoto(
   if (!content) throw new Error('Groq did not return a food estimate.');
   return parseEstimate(content);
 }
+
+export async function estimateFoodText(
+  mealDescription: string,
+  overrideApiKey?: string,
+): Promise<FoodPhotoEstimate> {
+  const apiKey = overrideApiKey?.trim() || groqApiKey;
+  if (!apiKey) {
+    throw new Error('Add a Groq API key before estimating meals.');
+  }
+
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    body: JSON.stringify({
+      max_completion_tokens: 700,
+      messages: [
+        {
+          content: `${nutritionPrompt}\n\nEstimate this typed meal instead of a photo: ${mealDescription}`,
+          role: 'user',
+        },
+      ],
+      model: groqVisionModel,
+      temperature: 0.15,
+    }),
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    method: 'POST',
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Groq meal estimate failed (${response.status}): ${errorText.slice(0, 180)}`);
+  }
+
+  const payload = (await response.json()) as {
+    choices?: { message?: { content?: string } }[];
+  };
+  const content = payload.choices?.[0]?.message?.content;
+  if (!content) throw new Error('Groq did not return a meal estimate.');
+  return parseEstimate(content);
+}
