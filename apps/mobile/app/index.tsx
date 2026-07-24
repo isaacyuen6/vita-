@@ -471,8 +471,9 @@ function TrainScreen({
   setData: ReturnType<typeof useVitaData>['setData'];
 }) {
   const [exerciseQuery, setExerciseQuery] = useState('');
-  const [manualExerciseName, setManualExerciseName] = useState('');
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
+  const [showPlanSetup, setShowPlanSetup] = useState(false);
+  const [editingSessionType, setEditingSessionType] = useState(false);
   const [weeklyDays, setWeeklyDays] = useState(String(data.trainingPlan.length || 3));
   const filteredExercises = findExerciseMatches(exerciseQuery);
   const hasExerciseQuery = exerciseQuery.trim().length >= 2;
@@ -511,6 +512,7 @@ function TrainScreen({
       ),
       workoutCompleted: false,
     }));
+    setEditingSessionType(false);
   }
 
   function addExerciseToPlan(name: string, load = 'Custom') {
@@ -535,7 +537,12 @@ function TrainScreen({
           : day,
       ),
     }));
-    setManualExerciseName('');
+    setExerciseQuery('');
+  }
+
+  function openExerciseInfo(name: string) {
+    const match = findExerciseMatches(name)[0] ?? exerciseLibrary.find((exercise) => displayExerciseName(exercise) === name);
+    if (match) setSelectedExercise(match);
   }
 
   function removeExerciseFromPlan(id: string) {
@@ -556,25 +563,35 @@ function TrainScreen({
   return (
     <View style={styles.screen}>
       <Text style={styles.kicker}>TRAIN</Text>
-      <Text style={styles.pageTitle}>{selectedPlan?.label ?? 'Training'} day</Text>
-      <Text style={styles.pageSubtitle}>Build and remember your weekly session plan</Text>
-
-      <View style={styles.planSetupCard}>
-        <Text style={styles.cardEyebrow}>WEEKLY PLAN</Text>
-        <Text style={styles.exerciseName}>How many days are you targeting?</Text>
-        <View style={styles.dayPicker}>
-          {[1, 2, 3, 4, 5, 6, 7].map((day) => (
-            <Pressable
-              key={day}
-              onPress={() => regenerateWeeklyPlan(String(day))}
-              style={[styles.dayPill, weeklyDays === String(day) && styles.dayPillActive]}
-            >
-              <Text style={[styles.dayPillText, weeklyDays === String(day) && styles.dayPillTextActive]}>
-                {day}
-              </Text>
-            </Pressable>
-          ))}
+      <View style={styles.trainHeaderCard}>
+        <View style={styles.trainHeaderTop}>
+          <View style={styles.exerciseCopy}>
+            <Text style={styles.pageTitle}>{selectedPlan?.label ?? 'Training'}</Text>
+            <Text style={styles.pageSubtitle}>Your weekly split is saved and editable.</Text>
+          </View>
+          <Pressable onPress={() => setShowPlanSetup((visible) => !visible)} style={styles.editPlanButton}>
+            <MaterialCommunityIcons color="#C4B5FD" name="calendar-edit" size={18} />
+            <Text style={styles.editPlanText}>Plan</Text>
+          </Pressable>
         </View>
+        {showPlanSetup && (
+          <View style={styles.planSetupInline}>
+            <Text style={styles.cardEyebrow}>TARGET DAYS</Text>
+            <View style={styles.dayPicker}>
+              {[1, 2, 3, 4, 5, 6, 7].map((day) => (
+                <Pressable
+                  key={day}
+                  onPress={() => regenerateWeeklyPlan(String(day))}
+                  style={[styles.dayPill, weeklyDays === String(day) && styles.dayPillActive]}
+                >
+                  <Text style={[styles.dayPillText, weeklyDays === String(day) && styles.dayPillTextActive]}>
+                    {day}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        )}
       </View>
 
       <View style={styles.exerciseSearch}>
@@ -639,7 +656,13 @@ function TrainScreen({
         </>
       )}
 
-      <SectionTitle title="Today?s session" />
+      <View style={styles.sessionHeaderRow}>
+        <SectionTitle title="Today's session" />
+        <Pressable onPress={() => setEditingSessionType((visible) => !visible)} style={styles.smallEditButton}>
+          <MaterialCommunityIcons color="#C4B5FD" name="pencil" size={16} />
+          <Text style={styles.editPlanText}>Edit</Text>
+        </Pressable>
+      </View>
       <View style={styles.planTabs}>
         {data.trainingPlan.map((day) => (
           <Pressable
@@ -659,44 +682,32 @@ function TrainScreen({
         ))}
       </View>
 
-      <View style={styles.sessionTypeCard}>
-        <Text style={styles.cardEyebrow}>SESSION TYPE</Text>
-        <View style={styles.sessionTypeGrid}>
-          {sessionTypeOptions.map((option) => (
-            <Pressable
-              key={option.value}
-              onPress={() => updateCurrentSessionType(option.value)}
-              style={[
-                styles.sessionTypePill,
-                selectedPlan?.sessionType === option.value && styles.sessionTypePillActive,
-              ]}
-            >
-              <Text
+      {editingSessionType && (
+        <View style={styles.sessionTypeCard}>
+          <Text style={styles.cardEyebrow}>CHANGE SESSION</Text>
+          <View style={styles.sessionTypeGrid}>
+            {sessionTypeOptions.map((option) => (
+              <Pressable
+                key={option.value}
+                onPress={() => updateCurrentSessionType(option.value)}
                 style={[
-                  styles.sessionTypeText,
-                  selectedPlan?.sessionType === option.value && styles.sessionTypeTextActive,
+                  styles.sessionTypePill,
+                  selectedPlan?.sessionType === option.value && styles.sessionTypePillActive,
                 ]}
               >
-                {option.label}
-              </Text>
-            </Pressable>
-          ))}
+                <Text
+                  style={[
+                    styles.sessionTypeText,
+                    selectedPlan?.sessionType === option.value && styles.sessionTypeTextActive,
+                  ]}
+                >
+                  {option.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
         </View>
-      </View>
-
-      <View style={styles.manualExerciseCard}>
-        <TextInput
-          accessibilityLabel="Enter exercise name"
-          onChangeText={setManualExerciseName}
-          placeholder="Enter exercise, e.g. Bench Press"
-          placeholderTextColor="#746D80"
-          style={styles.manualExerciseInput}
-          value={manualExerciseName}
-        />
-        <Pressable onPress={() => addExerciseToPlan(manualExerciseName)} style={styles.addExerciseButton}>
-          <MaterialCommunityIcons color="#FFFFFF" name="plus" size={20} />
-        </Pressable>
-      </View>
+      )}
 
       <View style={styles.workoutHeader}>
         <View>
@@ -713,7 +724,7 @@ function TrainScreen({
 
       <View style={styles.exerciseList}>
         {selectedPlan?.exercises.map((exercise, index) => (
-          <View key={exercise.id} style={styles.exerciseRow}>
+          <Pressable key={exercise.id} onPress={() => openExerciseInfo(exercise.name)} style={styles.exerciseRow}>
             <View style={styles.exerciseNumber}>
               <Text style={styles.exerciseNumberText}>{index + 1}</Text>
             </View>
@@ -723,10 +734,11 @@ function TrainScreen({
                 {exercise.prescription} - {exercise.load}
               </Text>
             </View>
+            <MaterialCommunityIcons color="#AFA6BC" name="information-outline" size={21} />
             <Pressable accessibilityLabel={`Remove ${exercise.name}`} onPress={() => removeExerciseFromPlan(exercise.id)}>
               <MaterialCommunityIcons color="#918A9E" name="close" size={21} />
             </Pressable>
-          </View>
+          </Pressable>
         ))}
       </View>
 
@@ -1772,13 +1784,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
   },
   exerciseSearchInput: { color: '#F2EEF8', flex: 1, fontSize: 14, minHeight: 50 },
-  planSetupCard: {
+  trainHeaderCard: {
     backgroundColor: '#15111B',
     borderColor: '#30263F',
     borderRadius: 20,
     borderWidth: 1,
     gap: 12,
     padding: 15,
+  },
+  trainHeaderTop: { alignItems: 'center', flexDirection: 'row', gap: 12 },
+  editPlanButton: {
+    alignItems: 'center',
+    backgroundColor: '#211832',
+    borderColor: '#3A2C4D',
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 6,
+    minHeight: 42,
+    paddingHorizontal: 12,
+  },
+  editPlanText: { color: '#C4B5FD', fontSize: 12, fontWeight: '900' },
+  planSetupInline: {
+    borderTopColor: '#2A2431',
+    borderTopWidth: 1,
+    gap: 10,
+    paddingTop: 12,
   },
   dayPicker: { flexDirection: 'row', gap: 8 },
   dayPill: {
@@ -1814,6 +1845,23 @@ const styles = StyleSheet.create({
   sessionTypePillActive: { backgroundColor: '#7C3AED', borderColor: '#A78BFA' },
   sessionTypeText: { color: '#A99FC0', fontSize: 12, fontWeight: '800' },
   sessionTypeTextActive: { color: '#FFF' },
+  sessionHeaderRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  smallEditButton: {
+    alignItems: 'center',
+    backgroundColor: '#211832',
+    borderColor: '#3A2C4D',
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
   libraryTitle: { color: '#F2EEF8', fontSize: 19, fontWeight: '800' },
   librarySubtitle: { color: '#918A9E', fontSize: 11, marginTop: 4 },
   exerciseLibrary: {
@@ -1906,32 +1954,32 @@ const styles = StyleSheet.create({
   legendText: { color: '#FCA5A5', fontSize: 8, fontWeight: '900', letterSpacing: 0.8 },
   muscleMapStage: {
     alignSelf: 'center',
-    backgroundColor: '#151720',
+    backgroundColor: '#12141D',
     borderColor: '#242838',
-    borderRadius: 28,
+    borderRadius: 30,
     borderWidth: 1,
-    height: 440,
+    height: 430,
     marginTop: 4,
-    maxWidth: 292,
+    maxWidth: 300,
     overflow: 'hidden',
     position: 'relative',
-    width: '76%',
+    width: '82%',
   },
   mapStatLeft: { left: 28, position: 'absolute', top: 32, zIndex: 3 },
   mapStatRight: { position: 'absolute', right: 26, top: 32, zIndex: 3 },
   mapStatNumber: { color: '#FFFFFF', fontSize: 24, fontWeight: '900', textAlign: 'center' },
   mapStatLabel: { color: '#A9A2B7', fontSize: 7, fontWeight: '900', letterSpacing: 0.5, marginTop: 2 },
-  bodyFigure: { alignSelf: 'center', height: 360, marginTop: 62, position: 'relative', width: 200 },
-  bodyPart: { backgroundColor: '#3B3E50', position: 'absolute' },
+  bodyFigure: { alignSelf: 'center', height: 352, marginTop: 64, position: 'relative', width: 190 },
+  bodyPart: { backgroundColor: '#343747', position: 'absolute' },
   bodyPartActive: {
     backgroundColor: '#F43F6B',
     shadowColor: '#F43F6B',
-    shadowOpacity: 0.45,
-    shadowRadius: 10,
+    shadowOpacity: 0.55,
+    shadowRadius: 14,
   },
   bodyMuscle: {
-    backgroundColor: '#56596C',
-    borderColor: '#242736',
+    backgroundColor: '#4B4F62',
+    borderColor: '#202330',
     borderWidth: 1,
     position: 'absolute',
   },
@@ -1942,50 +1990,50 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5,
     shadowRadius: 12,
   },
-  bodyHead: { borderRadius: 18, height: 34, left: 83, top: 0, width: 34 },
-  bodyNeck: { borderRadius: 8, height: 18, left: 91, top: 29, width: 18 },
+  bodyHead: { borderRadius: 19, height: 38, left: 76, top: 0, width: 38 },
+  bodyNeck: { borderRadius: 9, height: 18, left: 84, top: 34, width: 22 },
   bodyTorso: {
-    backgroundColor: '#333647',
-    borderBottomLeftRadius: 42,
-    borderBottomRightRadius: 42,
-    borderTopLeftRadius: 36,
-    borderTopRightRadius: 36,
-    height: 148,
-    left: 54,
-    top: 47,
-    width: 92,
+    backgroundColor: '#303343',
+    borderBottomLeftRadius: 36,
+    borderBottomRightRadius: 36,
+    borderTopLeftRadius: 44,
+    borderTopRightRadius: 44,
+    height: 142,
+    left: 50,
+    top: 53,
+    width: 90,
   },
   trapGroup: {
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 26,
-    height: 38,
-    left: 61,
-    top: 44,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    height: 34,
+    left: 56,
+    top: 47,
     width: 78,
   },
-  chestLeft: { borderRadius: 18, height: 38, left: 62, top: 76, width: 39 },
-  chestRight: { borderRadius: 18, height: 38, left: 99, top: 76, width: 39 },
-  abUpper: { borderRadius: 13, height: 30, left: 80, top: 116, width: 40 },
-  abMid: { borderRadius: 13, height: 32, left: 78, top: 145, width: 44 },
-  abLower: { borderBottomLeftRadius: 23, borderBottomRightRadius: 23, height: 36, left: 80, top: 174, width: 40 },
-  latLeft: { borderRadius: 22, height: 92, left: 45, top: 88, transform: [{ rotate: '14deg' }], width: 28 },
-  latRight: { borderRadius: 22, height: 92, left: 127, top: 88, transform: [{ rotate: '-14deg' }], width: 28 },
-  shoulderLeft: { borderRadius: 20, height: 39, left: 31, top: 79, width: 39 },
-  shoulderRight: { borderRadius: 20, height: 39, left: 130, top: 79, width: 39 },
-  upperArmLeft: { borderRadius: 20, height: 76, left: 20, top: 111, transform: [{ rotate: '12deg' }], width: 28 },
-  upperArmRight: { borderRadius: 20, height: 76, left: 152, top: 111, transform: [{ rotate: '-12deg' }], width: 28 },
-  forearmLeft: { borderRadius: 18, height: 78, left: 10, top: 184, transform: [{ rotate: '15deg' }], width: 23 },
-  forearmRight: { borderRadius: 18, height: 78, left: 167, top: 184, transform: [{ rotate: '-15deg' }], width: 23 },
-  handLeft: { borderRadius: 12, height: 24, left: 5, top: 254, transform: [{ rotate: '20deg' }], width: 22 },
-  handRight: { borderRadius: 12, height: 24, left: 173, top: 254, transform: [{ rotate: '-20deg' }], width: 22 },
-  hipLeft: { borderRadius: 28, height: 50, left: 58, top: 194, transform: [{ rotate: '10deg' }], width: 40 },
-  hipRight: { borderRadius: 28, height: 50, left: 102, top: 194, transform: [{ rotate: '-10deg' }], width: 40 },
-  quadLeft: { borderRadius: 27, height: 93, left: 57, top: 238, transform: [{ rotate: '4deg' }], width: 34 },
-  quadRight: { borderRadius: 27, height: 93, left: 109, top: 238, transform: [{ rotate: '-4deg' }], width: 34 },
-  lowerLegLeft: { borderRadius: 22, height: 74, left: 59, top: 316, transform: [{ rotate: '4deg' }], width: 27 },
-  lowerLegRight: { borderRadius: 22, height: 74, left: 114, top: 316, transform: [{ rotate: '-4deg' }], width: 27 },
-  footLeft: { borderRadius: 16, height: 17, left: 48, top: 385, transform: [{ rotate: '-10deg' }], width: 39 },
-  footRight: { borderRadius: 16, height: 17, left: 113, top: 385, transform: [{ rotate: '10deg' }], width: 39 },
+  chestLeft: { borderRadius: 22, height: 36, left: 57, top: 82, transform: [{ rotate: '8deg' }], width: 38 },
+  chestRight: { borderRadius: 22, height: 36, left: 95, top: 82, transform: [{ rotate: '-8deg' }], width: 38 },
+  abUpper: { borderRadius: 12, height: 26, left: 76, top: 121, width: 38 },
+  abMid: { borderRadius: 12, height: 28, left: 74, top: 149, width: 42 },
+  abLower: { borderBottomLeftRadius: 22, borderBottomRightRadius: 22, borderTopLeftRadius: 10, borderTopRightRadius: 10, height: 31, left: 76, top: 178, width: 38 },
+  latLeft: { borderRadius: 22, height: 86, left: 43, top: 95, transform: [{ rotate: '11deg' }], width: 25 },
+  latRight: { borderRadius: 22, height: 86, left: 122, top: 95, transform: [{ rotate: '-11deg' }], width: 25 },
+  shoulderLeft: { borderRadius: 22, height: 35, left: 28, top: 82, width: 35 },
+  shoulderRight: { borderRadius: 22, height: 35, left: 127, top: 82, width: 35 },
+  upperArmLeft: { borderRadius: 20, height: 72, left: 22, top: 114, transform: [{ rotate: '13deg' }], width: 24 },
+  upperArmRight: { borderRadius: 20, height: 72, left: 144, top: 114, transform: [{ rotate: '-13deg' }], width: 24 },
+  forearmLeft: { borderRadius: 18, height: 75, left: 11, top: 183, transform: [{ rotate: '14deg' }], width: 20 },
+  forearmRight: { borderRadius: 18, height: 75, left: 159, top: 183, transform: [{ rotate: '-14deg' }], width: 20 },
+  handLeft: { borderRadius: 12, height: 22, left: 6, top: 253, transform: [{ rotate: '18deg' }], width: 20 },
+  handRight: { borderRadius: 12, height: 22, left: 164, top: 253, transform: [{ rotate: '-18deg' }], width: 20 },
+  hipLeft: { borderRadius: 26, height: 42, left: 58, top: 203, transform: [{ rotate: '10deg' }], width: 34 },
+  hipRight: { borderRadius: 26, height: 42, left: 98, top: 203, transform: [{ rotate: '-10deg' }], width: 34 },
+  quadLeft: { borderRadius: 28, height: 90, left: 58, top: 239, transform: [{ rotate: '3deg' }], width: 30 },
+  quadRight: { borderRadius: 28, height: 90, left: 102, top: 239, transform: [{ rotate: '-3deg' }], width: 30 },
+  lowerLegLeft: { borderRadius: 20, height: 80, left: 60, top: 314, transform: [{ rotate: '3deg' }], width: 22 },
+  lowerLegRight: { borderRadius: 20, height: 80, left: 108, top: 314, transform: [{ rotate: '-3deg' }], width: 22 },
+  footLeft: { borderRadius: 16, height: 15, left: 49, top: 389, transform: [{ rotate: '-9deg' }], width: 34 },
+  footRight: { borderRadius: 16, height: 15, left: 107, top: 389, transform: [{ rotate: '9deg' }], width: 34 },
   anatomySource: {
     color: '#8C829A',
     fontSize: 10,
