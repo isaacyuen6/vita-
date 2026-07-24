@@ -6,7 +6,11 @@ export interface Meal {
   id: string;
   name: string;
   calories: number;
+  carbs?: number;
+  confidence?: number;
+  fat?: number;
   protein: number;
+  source?: 'manual' | 'photo';
   time: string;
 }
 

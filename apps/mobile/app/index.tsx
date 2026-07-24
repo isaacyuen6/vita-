@@ -1,6 +1,7 @@
 import { useEffect, useState, type ComponentProps } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Platform,
   Pressable,
   SafeAreaView,
@@ -12,8 +13,10 @@ import {
 } from 'react-native';
 import { VitaApiClient } from '@vita/api-client';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import * as ImagePicker from 'expo-image-picker';
 import { exerciseLibrary } from '../src/exercise-library';
 import type { Exercise } from '../src/exercise-types';
+import { estimateFoodPhoto, type FoodPhotoEstimate } from '../src/food-analysis';
 import { OnboardingFlow } from '../src/onboarding/OnboardingFlow';
 import { coachReply, readinessScore, targets, type TabId, type TrainingDay } from '../src/vita-data';
 import { useVitaData } from '../src/use-vita-data';
@@ -817,6 +820,10 @@ function EatScreen({
   const [mealName, setMealName] = useState('');
   const [mealCalories, setMealCalories] = useState('');
   const [mealProtein, setMealProtein] = useState('');
+  const [foodEstimate, setFoodEstimate] = useState<FoodPhotoEstimate | null>(null);
+  const [foodPhotoUri, setFoodPhotoUri] = useState('');
+  const [foodScanError, setFoodScanError] = useState('');
+  const [isScanningFood, setIsScanningFood] = useState(false);
 
   function addMeal() {
     const parsedCalories = Number(mealCalories);
@@ -840,6 +847,78 @@ function EatScreen({
     setMealCalories('');
     setMealProtein('');
     setShowForm(false);
+  }
+
+  async function analyzeFood(source: 'camera' | 'library') {
+    setFoodScanError('');
+    const permission =
+      source === 'camera'
+        ? await ImagePicker.requestCameraPermissionsAsync()
+        : await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      setFoodScanError('Photo permission is required to estimate meal calories.');
+      return;
+    }
+
+    const result =
+      source === 'camera'
+        ? await ImagePicker.launchCameraAsync({
+            allowsEditing: true,
+            base64: true,
+            exif: false,
+            quality: 0.75,
+          })
+        : await ImagePicker.launchImageLibraryAsync({
+            allowsEditing: true,
+            base64: true,
+            exif: false,
+            mediaTypes: ['images'],
+            quality: 0.75,
+          });
+
+    if (result.canceled) return;
+    const asset = result.assets[0];
+    if (!asset?.base64) {
+      setFoodScanError('Could not read the selected image. Try another photo.');
+      return;
+    }
+
+    setFoodPhotoUri(asset.uri);
+    setIsScanningFood(true);
+    try {
+      setFoodEstimate(await estimateFoodPhoto(asset.base64));
+    } catch (error) {
+      setFoodScanError(error instanceof Error ? error.message : 'Food analysis failed.');
+    } finally {
+      setIsScanningFood(false);
+    }
+  }
+
+  function saveFoodEstimate() {
+    if (!foodEstimate) return;
+    const mealLabel =
+      foodEstimate.items.length > 0
+        ? foodEstimate.items.map((item) => item.name).slice(0, 3).join(', ')
+        : 'Photo meal estimate';
+    setData((current) => ({
+      ...current,
+      meals: [
+        ...current.meals,
+        {
+          id: `${Date.now()}`,
+          name: mealLabel,
+          calories: foodEstimate.totals.calories,
+          carbs: foodEstimate.totals.carbsG,
+          confidence: foodEstimate.confidence,
+          fat: foodEstimate.totals.fatG,
+          protein: foodEstimate.totals.proteinG,
+          source: 'photo',
+          time: 'Just now',
+        },
+      ],
+    }));
+    setFoodEstimate(null);
+    setFoodPhotoUri('');
   }
 
   return (
@@ -866,18 +945,85 @@ function EatScreen({
 
       <View style={styles.scanCard}>
         <View style={styles.scanIcon}>
-          <Text style={styles.scanIconText}>▣</Text>
+          <MaterialCommunityIcons color="#FFF" name="camera-iris" size={22} />
         </View>
         <View style={styles.scanCopy}>
-          <Text style={styles.exerciseName}>Scan a meal</Text>
+          <Text style={styles.exerciseName}>Analyze a meal photo</Text>
           <Text style={styles.mutedText}>
-            Photo analysis will show ranges and ask you to confirm.
+            Take or upload a food photo to estimate calories, protein, carbs, and fat.
           </Text>
         </View>
-        <View style={styles.soonPill}>
-          <Text style={styles.soonText}>SOON</Text>
-        </View>
       </View>
+      <View style={styles.photoActions}>
+        <Pressable
+          disabled={isScanningFood}
+          onPress={() => void analyzeFood('camera')}
+          style={[styles.photoActionButton, isScanningFood && styles.disabledButton]}
+        >
+          <MaterialCommunityIcons color="#FFF" name="camera" size={18} />
+          <Text style={styles.photoActionText}>Take photo</Text>
+        </Pressable>
+        <Pressable
+          disabled={isScanningFood}
+          onPress={() => void analyzeFood('library')}
+          style={[styles.photoActionButton, styles.photoActionSecondary, isScanningFood && styles.disabledButton]}
+        >
+          <MaterialCommunityIcons color="#B79CFF" name="image" size={18} />
+          <Text style={styles.photoActionSecondaryText}>Choose photo</Text>
+        </Pressable>
+      </View>
+      {isScanningFood && (
+        <View style={styles.analysisCard}>
+          <ActivityIndicator color="#C084FC" />
+          <Text style={styles.exerciseName}>Estimating nutrition…</Text>
+          <Text style={styles.mutedText}>Vita is reading visible foods and portions.</Text>
+        </View>
+      )}
+      {!!foodScanError && (
+        <View style={styles.errorCard}>
+          <Text style={styles.exerciseName}>Couldn’t analyze that meal</Text>
+          <Text style={styles.mutedText}>{foodScanError}</Text>
+        </View>
+      )}
+      {foodEstimate && (
+        <View style={styles.analysisCard}>
+          {!!foodPhotoUri && <Image source={{ uri: foodPhotoUri }} style={styles.foodPreview} />}
+          <View>
+            <Text style={styles.cardEyebrow}>PHOTO ESTIMATE</Text>
+            <Text style={styles.sectionTitle}>{foodEstimate.totals.calories} kcal</Text>
+            <Text style={styles.mutedText}>
+              Confidence {Math.round(foodEstimate.confidence * 100)}% · confirm before logging
+            </Text>
+          </View>
+          <View style={styles.analysisTotals}>
+            <Stat label="Protein" trend="estimated" value={`${foodEstimate.totals.proteinG} g`} />
+            <Stat label="Carbs" trend="estimated" value={`${foodEstimate.totals.carbsG} g`} />
+            <Stat label="Fat" trend="estimated" value={`${foodEstimate.totals.fatG} g`} />
+          </View>
+          <View style={styles.foodItems}>
+            {foodEstimate.items.map((item, index) => (
+              <View key={`${item.name}-${index}`} style={styles.foodItemRow}>
+                <View style={styles.exerciseCopy}>
+                  <Text style={styles.exerciseName}>{item.name}</Text>
+                  <Text style={styles.mutedText}>
+                    {item.portion} · P {item.proteinG}g · C {item.carbsG}g · F {item.fatG}g
+                  </Text>
+                </View>
+                <Text style={styles.foodCalories}>{item.calories} kcal</Text>
+              </View>
+            ))}
+          </View>
+          {!!foodEstimate.assumptions.length && (
+            <Text style={styles.estimateDisclaimer}>
+              Assumptions: {foodEstimate.assumptions.slice(0, 3).join(' · ')}
+            </Text>
+          )}
+          <Text style={styles.estimateDisclaimer}>{foodEstimate.notes}</Text>
+          <Pressable onPress={saveFoodEstimate} style={styles.secondaryButton}>
+            <Text style={styles.secondaryButtonText}>Save estimated meal</Text>
+          </Pressable>
+        </View>
+      )}
 
       <Pressable onPress={() => setShowForm((visible) => !visible)} style={styles.primaryButton}>
         <Text style={styles.primaryButtonText}>＋ Add meal manually</Text>
@@ -932,6 +1078,8 @@ function EatScreen({
               <Text style={styles.exerciseName}>{meal.name}</Text>
               <Text style={styles.mutedText}>
                 {meal.calories} kcal · {meal.protein} g protein
+                {typeof meal.carbs === 'number' ? ` · ${meal.carbs} g carbs` : ''}
+                {typeof meal.fat === 'number' ? ` · ${meal.fat} g fat` : ''}
               </Text>
             </View>
             <Pressable
@@ -1334,6 +1482,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
   },
   primaryButtonText: { color: '#FFF', fontSize: 15, fontWeight: '800' },
+  disabledButton: { opacity: 0.55 },
   sectionTitleRow: {
     alignItems: 'center',
     flexDirection: 'row',
@@ -1713,15 +1862,65 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 44,
   },
-  scanIconText: { color: '#FFF', fontSize: 21 },
   scanCopy: { flex: 1 },
-  soonPill: {
-    backgroundColor: '#302148',
-    borderRadius: 9,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
+  photoActions: { flexDirection: 'row', gap: 10 },
+  photoActionButton: {
+    alignItems: 'center',
+    backgroundColor: '#7C3AED',
+    borderRadius: 15,
+    flex: 1,
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'center',
+    minHeight: 50,
+    paddingHorizontal: 12,
   },
-  soonText: { color: '#C4B5FD', fontSize: 8, fontWeight: '900', letterSpacing: 1 },
+  photoActionSecondary: {
+    backgroundColor: '#17111F',
+    borderColor: '#3A2C4D',
+    borderWidth: 1,
+  },
+  photoActionText: { color: '#FFF', fontSize: 14, fontWeight: '800' },
+  photoActionSecondaryText: { color: '#B79CFF', fontSize: 14, fontWeight: '800' },
+  analysisCard: {
+    backgroundColor: '#15111B',
+    borderColor: '#332640',
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 14,
+    padding: 16,
+  },
+  errorCard: {
+    backgroundColor: '#211219',
+    borderColor: '#5B2638',
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 5,
+    padding: 15,
+  },
+  foodPreview: {
+    backgroundColor: '#0A0710',
+    borderRadius: 16,
+    height: 190,
+    width: '100%',
+  },
+  analysisTotals: { flexDirection: 'row', gap: 10 },
+  foodItems: {
+    borderColor: '#2A2431',
+    borderRadius: 16,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  foodItemRow: {
+    alignItems: 'center',
+    borderBottomColor: '#2A2431',
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    padding: 12,
+  },
+  foodCalories: { color: '#F8F6FC', fontSize: 13, fontWeight: '800' },
+  estimateDisclaimer: { color: '#918A9E', fontSize: 11, lineHeight: 16 },
   formCard: { backgroundColor: '#15111B', borderRadius: 18, gap: 11, padding: 15 },
   input: {
     backgroundColor: '#0F0C14',
