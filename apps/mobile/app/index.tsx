@@ -111,6 +111,26 @@ const noisyExerciseTerms = [
   'v. 2',
 ];
 
+const malaysiaFoodSuggestions = [
+  { name: 'Nasi Lemak with Fried Chicken', calories: 820, protein: 32, carbs: 88, fat: 38 },
+  { name: 'Nasi Lemak Biasa', calories: 540, protein: 14, carbs: 70, fat: 24 },
+  { name: 'Ayam Gepuk with Rice', calories: 760, protein: 38, carbs: 82, fat: 30 },
+  { name: 'Ayam Gepuk Top Global', calories: 780, protein: 39, carbs: 84, fat: 31 },
+  { name: 'Chicken Rice', calories: 620, protein: 36, carbs: 72, fat: 18 },
+  { name: 'Nasi Kandar Ayam', calories: 900, protein: 38, carbs: 95, fat: 42 },
+  { name: 'Nasi Goreng Kampung', calories: 680, protein: 24, carbs: 88, fat: 24 },
+  { name: 'Mee Goreng Mamak', calories: 720, protein: 22, carbs: 92, fat: 30 },
+  { name: 'Char Kuey Teow', calories: 740, protein: 25, carbs: 78, fat: 35 },
+  { name: 'Laksa', calories: 560, protein: 22, carbs: 70, fat: 20 },
+  { name: 'Roti Canai with Dhal', calories: 360, protein: 10, carbs: 46, fat: 15 },
+  { name: 'Roti Telur', calories: 430, protein: 15, carbs: 46, fat: 21 },
+  { name: 'Satay Ayam 10 sticks', calories: 520, protein: 45, carbs: 18, fat: 30 },
+  { name: 'KFC Twister Box', calories: 980, protein: 42, carbs: 105, fat: 44 },
+  { name: 'KFC Zinger Burger Combo', calories: 950, protein: 39, carbs: 98, fat: 43 },
+  { name: 'McDonald’s Spicy Chicken McDeluxe Meal', calories: 1000, protein: 38, carbs: 110, fat: 45 },
+  { name: 'Teh Tarik', calories: 180, protein: 5, carbs: 30, fat: 5 },
+].map((food) => ({ ...food, fat: food.fat, confidence: 0.75 }));
+
 const normalizeSearchText = (value: string) =>
   value
     .toLowerCase()
@@ -944,473 +964,94 @@ function EatScreen({
   const [foodPhotoUri, setFoodPhotoUri] = useState('');
   const [foodScanError, setFoodScanError] = useState('');
   const [manualMealError, setManualMealError] = useState('');
-  const [groqKey, setGroqKey] = useState(() =>
-    Platform.OS === 'web' ? window.localStorage.getItem('vita-groq-key') ?? '' : '',
-  );
+  const [groqKey, setGroqKey] = useState(() => Platform.OS === 'web' ? window.localStorage.getItem('vita-groq-key') ?? '' : '');
   const [isScanningFood, setIsScanningFood] = useState(false);
   const [isEstimatingManualMeal, setIsEstimatingManualMeal] = useState(false);
   const [showGoalSetup, setShowGoalSetup] = useState(false);
+  const [customCalories, setCustomCalories] = useState(String(getNutritionGoals(data).calories));
+  const [customProtein, setCustomProtein] = useState(String(getNutritionGoals(data).protein));
+  const [editingMealId, setEditingMealId] = useState('');
+  const [editMealName, setEditMealName] = useState('');
+  const [editMealCalories, setEditMealCalories] = useState('');
+  const [editMealProtein, setEditMealProtein] = useState('');
   const needsGroqKey = !hasGroqFoodApiKey();
   const nutritionGoals = getNutritionGoals(data);
   const caloriesRemaining = Math.max(nutritionGoals.calories - calories, 0);
   const calorieProgress = calories / Math.max(nutritionGoals.calories, 1);
+  const manualQuery = [mealName, ...mealItems].join(' ').trim().toLowerCase();
+  const suggestedFoods = (manualQuery.length >= 2 ? malaysiaFoodSuggestions.filter((food) => food.name.toLowerCase().includes(manualQuery)) : malaysiaFoodSuggestions).slice(0, 6);
 
   function saveNutritionGoal(mode: NutritionGoalMode) {
     const profile = { ...data.userProfile };
     if (mode === 'cut') profile.goals = ['lose_fat'];
     if (mode === 'bulk') profile.goals = ['build_muscle_mass'];
-    if (mode === 'maintain') profile.goals = profile.goals.filter(
-      (goal) => goal !== 'lose_fat' && goal !== 'build_muscle_mass',
-    );
-    const estimatedCalories = estimateCalories(profile);
-    const estimatedProtein = estimateProtein(profile);
-    const fallbackCalories = mode === 'cut' ? 1850 : mode === 'bulk' ? 2600 : 2200;
-    setData((current) => ({
-      ...current,
-      nutritionGoals: {
-        calories: estimatedCalories ?? fallbackCalories,
-        mode,
-        protein: estimatedProtein ?? current.nutritionGoals?.protein ?? targets.protein,
-      },
-      userProfile: { ...current.userProfile, goals: profile.goals },
-    }));
+    if (mode === 'maintain') profile.goals = profile.goals.filter((goal) => goal !== 'lose_fat' && goal !== 'build_muscle_mass');
+    setData((current) => ({ ...current, nutritionGoals: { calories: estimateCalories(profile) ?? (mode === 'cut' ? 1850 : mode === 'bulk' ? 2600 : 2200), mode, protein: estimateProtein(profile) ?? current.nutritionGoals?.protein ?? targets.protein }, userProfile: { ...current.userProfile, goals: profile.goals } }));
+  }
+
+  function saveCustomNutritionGoal() {
+    const parsedCalories = Number(customCalories);
+    const parsedProtein = Number(customProtein);
+    if (!Number.isFinite(parsedCalories) || parsedCalories <= 0) return;
+    setData((current) => ({ ...current, nutritionGoals: { calories: Math.round(parsedCalories), mode: current.nutritionGoals?.mode ?? 'maintain', protein: Number.isFinite(parsedProtein) && parsedProtein > 0 ? Math.round(parsedProtein) : current.nutritionGoals?.protein ?? targets.protein } }));
     setShowGoalSetup(false);
   }
 
-  function saveEstimate(
-    estimate: FoodPhotoEstimate,
-    fallbackName: string,
-    source: 'manual' | 'photo',
-  ) {
-    const mealLabel =
-      mealName.trim() ||
-      (estimate.items.length > 0
-        ? estimate.items.map((item) => item.name).slice(0, 3).join(', ')
-        : fallbackName);
-    setData((current) => ({
-      ...current,
-      meals: [
-        ...current.meals,
-        {
-          id: `${Date.now()}`,
-          name: mealLabel,
-          calories: estimate.totals.calories,
-          carbs: estimate.totals.carbsG,
-          confidence: estimate.confidence,
-          fat: estimate.totals.fatG,
-          protein: estimate.totals.proteinG,
-          source,
-          time: 'Just now',
-        },
-      ],
-    }));
-    setMealName('');
-    setMealItems(['']);
-    setManualEstimate(null);
-    setShowForm(false);
+  function estimateFromSuggestion(food: (typeof malaysiaFoodSuggestions)[number]) {
+    setMealName(food.name);
+    setManualEstimate({ assumptions: ['Approximate Malaysia serving/restaurant portion'], confidence: food.confidence, items: [{ calories: food.calories, carbsG: food.carbs, confidence: food.confidence, fatG: food.fat, name: food.name, portion: '1 serving', proteinG: food.protein }], notes: 'Preloaded estimate. Edit if your portion is bigger or smaller.', totals: { calories: food.calories, carbsG: food.carbs, fatG: food.fat, proteinG: food.protein } });
   }
 
-  function updateMealItem(index: number, value: string) {
-    setMealItems((items) => items.map((item, itemIndex) => (itemIndex === index ? value : item)));
-    setManualEstimate(null);
-  }
-
-  function addMealItem() {
-    setMealItems((items) => [...items, '']);
-  }
-
-  function removeMealItem(index: number) {
-    setMealItems((items) => {
-      const next = items.filter((_, itemIndex) => itemIndex !== index);
-      return next.length ? next : [''];
-    });
-    setManualEstimate(null);
+  function saveEstimate(estimate: FoodPhotoEstimate, fallbackName: string, source: 'manual' | 'photo') {
+    const mealLabel = mealName.trim() || (estimate.items.length > 0 ? estimate.items.map((item) => item.name).slice(0, 3).join(', ') : fallbackName);
+    setData((current) => ({ ...current, meals: [...current.meals, { id: String(Date.now()), name: mealLabel, calories: estimate.totals.calories, carbs: estimate.totals.carbsG, confidence: estimate.confidence, fat: estimate.totals.fatG, protein: estimate.totals.proteinG, source, time: 'Just now' }] }));
+    setMealName(''); setMealItems(['']); setManualEstimate(null); setShowForm(false);
   }
 
   async function estimateManualMeal() {
-    const itemText = mealItems.map((item) => item.trim()).filter(Boolean);
-    const description = [mealName.trim(), ...itemText].filter(Boolean).join(', ');
-    if (!description) {
-      setManualMealError('Enter a meal name or at least one food item first.');
-      return;
-    }
-    setManualMealError('');
-    setIsEstimatingManualMeal(true);
-    try {
-      if (needsGroqKey && Platform.OS === 'web') {
-        window.localStorage.setItem('vita-groq-key', groqKey.trim());
-      }
-      setManualEstimate(await estimateFoodText(description, groqKey));
-    } catch (error) {
-      setManualMealError(error instanceof Error ? error.message : 'Meal estimate failed.');
-    } finally {
-      setIsEstimatingManualMeal(false);
-    }
+    const description = [mealName.trim(), ...mealItems.map((item) => item.trim()).filter(Boolean)].filter(Boolean).join(', ');
+    if (!description) { setManualMealError('Enter a meal name or choose a suggestion first.'); return; }
+    setManualMealError(''); setIsEstimatingManualMeal(true);
+    try { if (needsGroqKey && Platform.OS === 'web') window.localStorage.setItem('vita-groq-key', groqKey.trim()); setManualEstimate(await estimateFoodText(description, groqKey)); }
+    catch (error) { setManualMealError(error instanceof Error ? error.message : 'Meal estimate failed.'); }
+    finally { setIsEstimatingManualMeal(false); }
   }
 
   async function analyzeFood(source: 'camera' | 'library') {
     setFoodScanError('');
-    const permission =
-      source === 'camera'
-        ? await ImagePicker.requestCameraPermissionsAsync()
-        : await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      setFoodScanError('Photo permission is required to estimate meal calories.');
-      return;
-    }
-
-    const result =
-      source === 'camera'
-        ? await ImagePicker.launchCameraAsync({
-            allowsEditing: true,
-            base64: true,
-            exif: false,
-            quality: 0.75,
-          })
-        : await ImagePicker.launchImageLibraryAsync({
-            allowsEditing: true,
-            base64: true,
-            exif: false,
-            mediaTypes: ['images'],
-            quality: 0.75,
-          });
-
+    const permission = source === 'camera' ? await ImagePicker.requestCameraPermissionsAsync() : await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) { setFoodScanError('Photo permission is required to estimate meal calories.'); return; }
+    const result = source === 'camera' ? await ImagePicker.launchCameraAsync({ allowsEditing: true, base64: true, exif: false, quality: 0.75 }) : await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, base64: true, exif: false, mediaTypes: ['images'], quality: 0.75 });
     if (result.canceled) return;
     const asset = result.assets[0];
-    if (!asset?.base64) {
-      setFoodScanError('Could not read the selected image. Try another photo.');
-      return;
-    }
-
-    setFoodPhotoUri(asset.uri);
-    setIsScanningFood(true);
-    try {
-      if (needsGroqKey && Platform.OS === 'web') {
-        window.localStorage.setItem('vita-groq-key', groqKey.trim());
-      }
-      setFoodEstimate(await estimateFoodPhoto(asset.base64, groqKey));
-    } catch (error) {
-      setFoodScanError(error instanceof Error ? error.message : 'Food analysis failed.');
-    } finally {
-      setIsScanningFood(false);
-    }
+    if (!asset?.base64) { setFoodScanError('Could not read the selected image. Try another photo.'); return; }
+    setFoodPhotoUri(asset.uri); setIsScanningFood(true);
+    try { if (needsGroqKey && Platform.OS === 'web') window.localStorage.setItem('vita-groq-key', groqKey.trim()); setFoodEstimate(await estimateFoodPhoto(asset.base64, groqKey)); }
+    catch (error) { setFoodScanError(error instanceof Error ? error.message : 'Food analysis failed.'); }
+    finally { setIsScanningFood(false); }
   }
 
-  function saveFoodEstimate() {
-    if (!foodEstimate) return;
-    saveEstimate(foodEstimate, 'Photo meal estimate', 'photo');
-    setFoodEstimate(null);
-    setFoodPhotoUri('');
+  function startEditMeal(meal: ReturnType<typeof useVitaData>['data']['meals'][number]) { setEditingMealId(meal.id); setEditMealName(meal.name); setEditMealCalories(String(meal.calories)); setEditMealProtein(String(meal.protein)); }
+  function saveEditedMeal() {
+    const parsedCalories = Number(editMealCalories); const parsedProtein = Number(editMealProtein);
+    if (!editingMealId || !editMealName.trim() || !Number.isFinite(parsedCalories) || !Number.isFinite(parsedProtein)) return;
+    setData((current) => ({ ...current, meals: current.meals.map((meal) => meal.id === editingMealId ? { ...meal, name: editMealName.trim(), calories: Math.round(parsedCalories), protein: Math.round(parsedProtein) } : meal) }));
+    setEditingMealId('');
   }
 
   return (
     <View style={styles.screen}>
-      <Text style={styles.kicker}>EAT</Text>
-      <Text style={styles.pageTitle}>Fuel your day</Text>
-      <Text style={styles.pageSubtitle}>Estimates stay editable until you confirm them.</Text>
-
-      <View style={styles.nutritionGoalCard}>
-        <View style={styles.goalHeaderRow}>
-          <View style={styles.exerciseCopy}>
-            <Text style={styles.cardEyebrow}>CALORIE GOAL</Text>
-            <Text style={styles.darkTitle}>{nutritionGoals.calories} kcal</Text>
-            <Text style={styles.mutedText}>
-              {nutritionGoals.mode === 'cut'
-                ? 'Cut target'
-                : nutritionGoals.mode === 'bulk'
-                  ? 'Bulk target'
-                  : 'Maintain target'}{' '}
-              · based on your profile
-            </Text>
-          </View>
-          <Pressable onPress={() => setShowGoalSetup((visible) => !visible)} style={styles.smallEditButton}>
-            <MaterialCommunityIcons color="#C4B5FD" name="auto-fix" size={16} />
-            <Text style={styles.editPlanText}>AI Goal</Text>
-          </Pressable>
-        </View>
-        <View style={styles.goalProgressRow}>
-          <Text style={styles.goalConsumed}>{calories} consumed</Text>
-          <Text style={styles.goalRemaining}>{caloriesRemaining} left</Text>
-        </View>
-        <ProgressBar value={calorieProgress} color="#C084FC" />
-        {showGoalSetup && (
-          <View style={styles.goalModeGrid}>
-            {[
-              { label: 'Cut fat', value: 'cut' },
-              { label: 'Maintain', value: 'maintain' },
-              { label: 'Bulk muscle', value: 'bulk' },
-            ].map((option) => (
-              <Pressable
-                key={option.value}
-                onPress={() => saveNutritionGoal(option.value as NutritionGoalMode)}
-                style={[
-                  styles.goalModeButton,
-                  nutritionGoals.mode === option.value && styles.goalModeButtonActive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.goalModeText,
-                    nutritionGoals.mode === option.value && styles.goalModeTextActive,
-                  ]}
-                >
-                  {option.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        )}
-      </View>
-
-      <View style={styles.nutritionHero}>
-        <View style={styles.nutritionMetric}>
-          <Text style={styles.cardEyebrow}>CALORIES</Text>
-          <Text style={styles.bigMetric}>{calories}</Text>
-          <Text style={styles.mutedText}>
-            {caloriesRemaining} kcal remaining
-          </Text>
-        </View>
-        <View style={styles.macroRight}>
-          <Text style={styles.cardEyebrow}>PROTEIN</Text>
-          <Text style={styles.bigMetric}>{protein} g</Text>
-          <Text style={styles.mutedText}>Target {nutritionGoals.protein} g</Text>
-        </View>
-      </View>
-      <ProgressBar value={calorieProgress} color="#C084FC" />
-
-      <View style={styles.scanCard}>
-        <View style={styles.scanIcon}>
-          <MaterialCommunityIcons color="#FFF" name="camera-iris" size={22} />
-        </View>
-        <View style={styles.scanCopy}>
-          <Text style={styles.exerciseName}>Analyze a meal photo</Text>
-          <Text style={styles.mutedText}>
-            Take or upload a food photo to estimate calories, protein, carbs, and fat.
-          </Text>
-        </View>
-      </View>
-      <View style={styles.photoActions}>
-        <Pressable
-          disabled={isScanningFood}
-          onPress={() => void analyzeFood('camera')}
-          style={[styles.photoActionButton, isScanningFood && styles.disabledButton]}
-        >
-          <MaterialCommunityIcons color="#FFF" name="camera" size={18} />
-          <Text style={styles.photoActionText}>Take photo</Text>
-        </Pressable>
-        <Pressable
-          disabled={isScanningFood}
-          onPress={() => void analyzeFood('library')}
-          style={[styles.photoActionButton, styles.photoActionSecondary, isScanningFood && styles.disabledButton]}
-        >
-          <MaterialCommunityIcons color="#B79CFF" name="image" size={18} />
-          <Text style={styles.photoActionSecondaryText}>Choose photo</Text>
-        </Pressable>
-      </View>
-      {needsGroqKey && (
-        <View style={styles.apiKeyCard}>
-          <Text style={styles.exerciseName}>Groq key for photo testing</Text>
-          <Text style={styles.mutedText}>
-            Stored only in this browser so it does not get published inside the PWA bundle.
-          </Text>
-          <TextInput
-            autoCapitalize="none"
-            autoCorrect={false}
-            onChangeText={setGroqKey}
-            placeholder="Paste Groq API key"
-            placeholderTextColor="#746D80"
-            secureTextEntry
-            style={styles.input}
-            value={groqKey}
-          />
-        </View>
-      )}
-      {isScanningFood && (
-        <View style={styles.analysisCard}>
-          <ActivityIndicator color="#C084FC" />
-          <Text style={styles.exerciseName}>Estimating nutrition…</Text>
-          <Text style={styles.mutedText}>Vita is reading visible foods and portions.</Text>
-        </View>
-      )}
-      {!!foodScanError && (
-        <View style={styles.errorCard}>
-          <Text style={styles.exerciseName}>Couldn’t analyze that meal</Text>
-          <Text style={styles.mutedText}>{foodScanError}</Text>
-        </View>
-      )}
-      {foodEstimate && (
-        <View style={styles.analysisCard}>
-          {!!foodPhotoUri && <Image source={{ uri: foodPhotoUri }} style={styles.foodPreview} />}
-          <View>
-            <Text style={styles.cardEyebrow}>PHOTO ESTIMATE</Text>
-            <Text style={styles.sectionTitle}>{foodEstimate.totals.calories} kcal</Text>
-            <Text style={styles.mutedText}>
-              Confidence {Math.round(foodEstimate.confidence * 100)}% · confirm before logging
-            </Text>
-          </View>
-          <View style={styles.analysisTotals}>
-            <Stat label="Protein" trend="estimated" value={`${foodEstimate.totals.proteinG} g`} />
-            <Stat label="Carbs" trend="estimated" value={`${foodEstimate.totals.carbsG} g`} />
-            <Stat label="Fat" trend="estimated" value={`${foodEstimate.totals.fatG} g`} />
-          </View>
-          <View style={styles.foodItems}>
-            {foodEstimate.items.map((item, index) => (
-              <View key={`${item.name}-${index}`} style={styles.foodItemRow}>
-                <View style={styles.exerciseCopy}>
-                  <Text style={styles.exerciseName}>{item.name}</Text>
-                  <Text style={styles.mutedText}>
-                    {item.portion} · P {item.proteinG}g · C {item.carbsG}g · F {item.fatG}g
-                  </Text>
-                </View>
-                <Text style={styles.foodCalories}>{item.calories} kcal</Text>
-              </View>
-            ))}
-          </View>
-          {!!foodEstimate.assumptions.length && (
-            <Text style={styles.estimateDisclaimer}>
-              Assumptions: {foodEstimate.assumptions.slice(0, 3).join(' · ')}
-            </Text>
-          )}
-          <Text style={styles.estimateDisclaimer}>{foodEstimate.notes}</Text>
-          <Pressable onPress={saveFoodEstimate} style={styles.secondaryButton}>
-            <Text style={styles.secondaryButtonText}>Save estimated meal</Text>
-          </Pressable>
-        </View>
-      )}
-
-      <Pressable onPress={() => setShowForm((visible) => !visible)} style={styles.primaryButton}>
-        <Text style={styles.primaryButtonText}>＋ Add meal manually</Text>
-      </Pressable>
-      {showForm && (
-        <View style={styles.formCard}>
-          <TextInput
-            accessibilityLabel="Meal name"
-            onChangeText={setMealName}
-            placeholder="Meal name, e.g. chicken rice"
-            placeholderTextColor="#746D80"
-            style={styles.input}
-            value={mealName}
-          />
-          <View style={styles.manualItems}>
-            {mealItems.map((item, index) => (
-              <View key={index} style={styles.manualItemRow}>
-                <TextInput
-                  accessibilityLabel={`Food item ${index + 1}`}
-                  onChangeText={(value) => updateMealItem(index, value)}
-                  placeholder={index === 0 ? 'Food item, e.g. grilled chicken breast' : 'Another item'}
-                  placeholderTextColor="#746D80"
-                  style={[styles.input, styles.flexInput]}
-                  value={item}
-                />
-                <Pressable
-                  accessibilityLabel={`Remove food item ${index + 1}`}
-                  onPress={() => removeMealItem(index)}
-                  style={styles.removeItemButton}
-                >
-                  <MaterialCommunityIcons color="#B79CFF" name="minus" size={18} />
-                </Pressable>
-              </View>
-            ))}
-          </View>
-          <Pressable onPress={addMealItem} style={styles.addItemButton}>
-            <MaterialCommunityIcons color="#B79CFF" name="plus" size={18} />
-            <Text style={styles.secondaryButtonText}>Add item</Text>
-          </Pressable>
-          {!!manualMealError && (
-            <View style={styles.errorCard}>
-              <Text style={styles.mutedText}>{manualMealError}</Text>
-            </View>
-          )}
-          {isEstimatingManualMeal && (
-            <View style={styles.analysisCard}>
-              <ActivityIndicator color="#C084FC" />
-              <Text style={styles.exerciseName}>Estimating meal…</Text>
-            </View>
-          )}
-          {manualEstimate && (
-            <View style={styles.analysisCard}>
-              <View>
-                <Text style={styles.cardEyebrow}>AI MEAL ESTIMATE</Text>
-                <Text style={styles.sectionTitle}>{manualEstimate.totals.calories} kcal</Text>
-                <Text style={styles.mutedText}>
-                  P {manualEstimate.totals.proteinG}g · C {manualEstimate.totals.carbsG}g · F{' '}
-                  {manualEstimate.totals.fatG}g
-                </Text>
-              </View>
-              <View style={styles.foodItems}>
-                {manualEstimate.items.map((item, index) => (
-                  <View key={`${item.name}-${index}`} style={styles.foodItemRow}>
-                    <View style={styles.exerciseCopy}>
-                      <Text style={styles.exerciseName}>{item.name}</Text>
-                      <Text style={styles.mutedText}>{item.portion}</Text>
-                    </View>
-                    <Text style={styles.foodCalories}>{item.calories} kcal</Text>
-                  </View>
-                ))}
-              </View>
-              <Pressable
-                onPress={() => saveEstimate(manualEstimate, 'Manual meal estimate', 'manual')}
-                style={styles.secondaryButton}
-              >
-                <Text style={styles.secondaryButtonText}>Save estimated meal</Text>
-              </Pressable>
-            </View>
-          )}
-          <Pressable
-            disabled={isEstimatingManualMeal}
-            onPress={() => void estimateManualMeal()}
-            style={[styles.secondaryButton, isEstimatingManualMeal && styles.disabledButton]}
-          >
-            <Text style={styles.secondaryButtonText}>Estimate with AI</Text>
-          </Pressable>
-        </View>
-      )}
-
-      <SectionTitle title="Today’s meals" />
-      <View style={styles.listCard}>
-        {data.meals.map((meal, index) => (
-          <View
-            key={meal.id}
-            style={[styles.mealRow, index === data.meals.length - 1 && styles.noBorder]}
-          >
-            <View style={styles.mealTime}>
-              <Text style={styles.mutedText}>{meal.time}</Text>
-            </View>
-            <View style={styles.exerciseCopy}>
-              <Text style={styles.exerciseName}>{meal.name}</Text>
-              <Text style={styles.mutedText}>
-                {meal.calories} kcal · {meal.protein} g protein
-                {typeof meal.carbs === 'number' ? ` · ${meal.carbs} g carbs` : ''}
-                {typeof meal.fat === 'number' ? ` · ${meal.fat} g fat` : ''}
-              </Text>
-            </View>
-            <Pressable
-              accessibilityLabel={`Delete ${meal.name}`}
-              onPress={() =>
-                setData((current) => ({
-                  ...current,
-                  meals: current.meals.filter((item) => item.id !== meal.id),
-                }))
-              }
-            >
-              <Text style={styles.deleteText}>×</Text>
-            </Pressable>
-          </View>
-        ))}
-      </View>
-
-      <Pressable
-        onPress={() => setData((current) => ({ ...current, waterMl: current.waterMl + 250 }))}
-        style={styles.waterCard}
-      >
-        <View>
-          <Text style={styles.exerciseName}>Water</Text>
-          <Text style={styles.mutedText}>
-            {data.waterMl} ml of {targets.waterMl} ml
-          </Text>
-        </View>
-        <Text style={styles.waterAdd}>＋ 250 ml</Text>
-      </Pressable>
+      <Text style={styles.kicker}>EAT</Text><Text style={styles.pageTitle}>Fuel your day</Text><Text style={styles.pageSubtitle}>Set a goal, estimate meals, then adjust anything later.</Text>
+      <View style={styles.nutritionGoalCard}><View style={styles.goalHeaderRow}><View style={styles.exerciseCopy}><Text style={styles.cardEyebrow}>CALORIE GOAL</Text><Text style={styles.darkTitle}>{nutritionGoals.calories} kcal</Text><Text style={styles.mutedText}>{nutritionGoals.mode} target ? {calories} consumed ? {caloriesRemaining} left</Text></View><Pressable onPress={() => setShowGoalSetup((visible) => !visible)} style={styles.smallEditButton}><MaterialCommunityIcons color="#C4B5FD" name="pencil" size={16} /><Text style={styles.editPlanText}>Edit</Text></Pressable></View><ProgressBar value={calorieProgress} color="#C084FC" />{showGoalSetup && <View style={styles.goalSetupStack}><View style={styles.goalModeGrid}>{(['cut','maintain','bulk'] as NutritionGoalMode[]).map((mode) => <Pressable key={mode} onPress={() => saveNutritionGoal(mode)} style={[styles.goalModeButton, nutritionGoals.mode === mode && styles.goalModeButtonActive]}><Text style={[styles.goalModeText, nutritionGoals.mode === mode && styles.goalModeTextActive]}>{mode === 'cut' ? 'Cut fat' : mode === 'bulk' ? 'Bulk muscle' : 'Maintain'}</Text></Pressable>)}</View><View style={styles.twoColumns}><TextInput keyboardType="numeric" onChangeText={setCustomCalories} placeholder="Calories" placeholderTextColor="#746D80" style={[styles.input, styles.flexInput]} value={customCalories} /><TextInput keyboardType="numeric" onChangeText={setCustomProtein} placeholder="Protein g" placeholderTextColor="#746D80" style={[styles.input, styles.flexInput]} value={customProtein} /></View><Pressable onPress={saveCustomNutritionGoal} style={styles.secondaryButton}><Text style={styles.secondaryButtonText}>Save my custom goal</Text></Pressable></View>}</View>
+      <View style={styles.nutritionHero}><View style={styles.nutritionMetric}><Text style={styles.cardEyebrow}>CALORIES</Text><Text style={styles.bigMetric}>{calories}</Text><Text style={styles.mutedText}>{caloriesRemaining} kcal remaining</Text></View><View style={styles.macroRight}><Text style={styles.cardEyebrow}>PROTEIN</Text><Text style={styles.bigMetric}>{protein} g</Text><Text style={styles.mutedText}>Target {nutritionGoals.protein} g</Text></View></View>
+      <View style={styles.scanCard}><View style={styles.scanIcon}><MaterialCommunityIcons color="#FFF" name="camera-iris" size={22} /></View><View style={styles.scanCopy}><Text style={styles.exerciseName}>Analyze a meal photo</Text><Text style={styles.mutedText}>Take or upload a food photo to estimate calories, protein, carbs, and fat.</Text></View></View>
+      <View style={styles.photoActions}><Pressable disabled={isScanningFood} onPress={() => void analyzeFood('camera')} style={[styles.photoActionButton, isScanningFood && styles.disabledButton]}><MaterialCommunityIcons color="#FFF" name="camera" size={18} /><Text style={styles.photoActionText}>Take photo</Text></Pressable><Pressable disabled={isScanningFood} onPress={() => void analyzeFood('library')} style={[styles.photoActionButton, styles.photoActionSecondary, isScanningFood && styles.disabledButton]}><MaterialCommunityIcons color="#B79CFF" name="image" size={18} /><Text style={styles.photoActionSecondaryText}>Choose photo</Text></Pressable></View>
+      {needsGroqKey && <View style={styles.apiKeyCard}><Text style={styles.exerciseName}>Groq key for photo testing</Text><Text style={styles.mutedText}>Stored only in this browser so it does not get published inside the PWA bundle.</Text><TextInput autoCapitalize="none" autoCorrect={false} onChangeText={setGroqKey} placeholder="Paste Groq API key" placeholderTextColor="#746D80" secureTextEntry style={styles.input} value={groqKey} /></View>}
+      {isScanningFood && <View style={styles.analysisCard}><ActivityIndicator color="#C084FC" /><Text style={styles.exerciseName}>Estimating nutrition?</Text></View>}{!!foodScanError && <View style={styles.errorCard}><Text style={styles.exerciseName}>Couldn?t analyze that meal</Text><Text style={styles.mutedText}>{foodScanError}</Text></View>}{foodEstimate && <View style={styles.analysisCard}>{!!foodPhotoUri && <Image source={{ uri: foodPhotoUri }} style={styles.foodPreview} />}<Text style={styles.sectionTitle}>{foodEstimate.totals.calories} kcal</Text><View style={styles.analysisTotals}><Stat label="Protein" trend="estimated" value={String(foodEstimate.totals.proteinG) + ' g'} /><Stat label="Carbs" trend="estimated" value={String(foodEstimate.totals.carbsG) + ' g'} /><Stat label="Fat" trend="estimated" value={String(foodEstimate.totals.fatG) + ' g'} /></View><Pressable onPress={() => saveEstimate(foodEstimate, 'Photo meal estimate', 'photo')} style={styles.secondaryButton}><Text style={styles.secondaryButtonText}>Save estimated meal</Text></Pressable></View>}
+      <Pressable onPress={() => setShowForm((visible) => !visible)} style={styles.primaryButton}><Text style={styles.primaryButtonText}>+ Add meal manually</Text></Pressable>
+      {showForm && <View style={styles.formCard}><TextInput accessibilityLabel="Meal name" onChangeText={(value) => { setMealName(value); setManualEstimate(null); }} placeholder="Meal name, e.g. nasi lemak or twister box" placeholderTextColor="#746D80" style={styles.input} value={mealName} /><View style={styles.suggestionStack}><Text style={styles.cardEyebrow}>MALAYSIA FOOD SUGGESTIONS</Text>{suggestedFoods.map((food) => <Pressable key={food.name} onPress={() => estimateFromSuggestion(food)} style={styles.foodSuggestion}><View style={styles.exerciseCopy}><Text style={styles.exerciseName}>{food.name}</Text><Text style={styles.mutedText}>{food.calories} kcal ? {food.protein}g protein ? {food.carbs}g carbs ? {food.fat}g fat</Text></View><MaterialCommunityIcons color="#C4B5FD" name="plus-circle" size={20} /></Pressable>)}</View><View style={styles.manualItems}>{mealItems.map((item, index) => <View key={index} style={styles.manualItemRow}><TextInput accessibilityLabel={'Food item ' + String(index + 1)} onChangeText={(value) => { setMealItems((items) => items.map((old, i) => i === index ? value : old)); setManualEstimate(null); }} placeholder={index === 0 ? 'Extra item, e.g. teh tarik' : 'Another item'} placeholderTextColor="#746D80" style={[styles.input, styles.flexInput]} value={item} /><Pressable onPress={() => setMealItems((items) => { const next = items.filter((_, i) => i !== index); return next.length ? next : ['']; })} style={styles.removeItemButton}><MaterialCommunityIcons color="#B79CFF" name="minus" size={18} /></Pressable></View>)}</View><Pressable onPress={() => setMealItems((items) => [...items, ''])} style={styles.addItemButton}><MaterialCommunityIcons color="#B79CFF" name="plus" size={18} /><Text style={styles.secondaryButtonText}>Add item</Text></Pressable>{!!manualMealError && <View style={styles.errorCard}><Text style={styles.mutedText}>{manualMealError}</Text></View>}{isEstimatingManualMeal && <View style={styles.analysisCard}><ActivityIndicator color="#C084FC" /><Text style={styles.exerciseName}>Estimating meal?</Text></View>}{manualEstimate && <View style={styles.analysisCard}><Text style={styles.cardEyebrow}>MEAL ESTIMATE</Text><Text style={styles.sectionTitle}>{manualEstimate.totals.calories} kcal</Text><Text style={styles.mutedText}>P {manualEstimate.totals.proteinG}g ? C {manualEstimate.totals.carbsG}g ? F {manualEstimate.totals.fatG}g</Text><Pressable onPress={() => saveEstimate(manualEstimate, 'Manual meal estimate', 'manual')} style={styles.secondaryButton}><Text style={styles.secondaryButtonText}>Save estimated meal</Text></Pressable></View>}<Pressable disabled={isEstimatingManualMeal} onPress={() => void estimateManualMeal()} style={[styles.secondaryButton, isEstimatingManualMeal && styles.disabledButton]}><Text style={styles.secondaryButtonText}>Estimate with AI</Text></Pressable></View>}
+      <SectionTitle title="Today?s meals" /><View style={styles.listCard}>{data.meals.map((meal, index) => <View key={meal.id} style={[styles.mealRow, index === data.meals.length - 1 && styles.noBorder]}>{editingMealId === meal.id ? <View style={styles.editMealCard}><TextInput onChangeText={setEditMealName} placeholder="Meal name" placeholderTextColor="#746D80" style={styles.input} value={editMealName} /><View style={styles.twoColumns}><TextInput keyboardType="numeric" onChangeText={setEditMealCalories} placeholder="Calories" placeholderTextColor="#746D80" style={[styles.input, styles.flexInput]} value={editMealCalories} /><TextInput keyboardType="numeric" onChangeText={setEditMealProtein} placeholder="Protein" placeholderTextColor="#746D80" style={[styles.input, styles.flexInput]} value={editMealProtein} /></View><View style={styles.mealActions}><Pressable onPress={saveEditedMeal} style={styles.compactActionButton}><Text style={styles.secondaryButtonText}>Save</Text></Pressable><Pressable onPress={() => setEditingMealId('')} style={styles.compactActionButton}><Text style={styles.secondaryButtonText}>Cancel</Text></Pressable></View></View> : <><View style={styles.mealTime}><Text style={styles.mutedText}>{meal.time}</Text></View><View style={styles.exerciseCopy}><Text style={styles.exerciseName}>{meal.name}</Text><Text style={styles.mutedText}>{meal.calories} kcal ? {meal.protein} g protein{typeof meal.carbs === 'number' ? ' ? ' + String(meal.carbs) + ' g carbs' : ''}{typeof meal.fat === 'number' ? ' ? ' + String(meal.fat) + ' g fat' : ''}</Text></View><Pressable onPress={() => startEditMeal(meal)}><MaterialCommunityIcons color="#C4B5FD" name="pencil" size={20} /></Pressable><Pressable onPress={() => setData((current) => ({ ...current, meals: current.meals.filter((item) => item.id !== meal.id) }))}><Text style={styles.deleteText}>?</Text></Pressable></>}</View>)}</View>
+      <Pressable onPress={() => setData((current) => ({ ...current, waterMl: current.waterMl + 250 }))} style={styles.waterCard}><View><Text style={styles.exerciseName}>Water</Text><Text style={styles.mutedText}>{data.waterMl} ml of {targets.waterMl} ml</Text></View><Text style={styles.waterAdd}>+ 250 ml</Text></Pressable>
     </View>
   );
 }
@@ -2268,6 +1909,7 @@ const styles = StyleSheet.create({
   goalModeButtonActive: { backgroundColor: '#7C3AED', borderColor: '#A78BFA' },
   goalModeText: { color: '#B9B0C8', fontSize: 11, fontWeight: '900', textAlign: 'center' },
   goalModeTextActive: { color: '#FFF' },
+  goalSetupStack: { gap: 10 },
   nutritionMetric: { flex: 1, minWidth: 0 },
   bigMetric: { color: '#F8F6FC', fontSize: 25, fontWeight: '800', marginVertical: 3 },
   macroRight: { alignItems: 'flex-start', flex: 1, minWidth: 0 },
@@ -2357,6 +1999,17 @@ const styles = StyleSheet.create({
   foodCalories: { color: '#F8F6FC', fontSize: 13, fontWeight: '800' },
   estimateDisclaimer: { color: '#918A9E', fontSize: 11, lineHeight: 16 },
   formCard: { backgroundColor: '#15111B', borderRadius: 18, gap: 11, padding: 15 },
+  suggestionStack: { gap: 8 },
+  foodSuggestion: {
+    alignItems: 'center',
+    backgroundColor: '#1D1727',
+    borderColor: '#30263F',
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    padding: 12,
+  },
   manualItems: { gap: 10 },
   manualItemRow: { alignItems: 'center', flexDirection: 'row', gap: 8 },
   removeItemButton: {
@@ -2394,6 +2047,17 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
   },
   mealTime: { width: 55 },
+  editMealCard: { flex: 1, gap: 10 },
+  mealActions: { flexDirection: 'row', gap: 8 },
+  compactActionButton: {
+    alignItems: 'center',
+    borderColor: '#8B5CF6',
+    borderRadius: 12,
+    borderWidth: 1,
+    flex: 1,
+    justifyContent: 'center',
+    minHeight: 42,
+  },
   deleteText: { color: '#B76A5B', fontSize: 24, padding: 5 },
   waterCard: {
     alignItems: 'center',
