@@ -16,7 +16,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import * as ImagePicker from 'expo-image-picker';
 import { exerciseLibrary } from '../src/exercise-library';
 import type { Exercise } from '../src/exercise-types';
-import { estimateFoodPhoto, type FoodPhotoEstimate } from '../src/food-analysis';
+import { estimateFoodPhoto, hasGroqFoodApiKey, type FoodPhotoEstimate } from '../src/food-analysis';
 import { OnboardingFlow } from '../src/onboarding/OnboardingFlow';
 import { coachReply, readinessScore, targets, type TabId, type TrainingDay } from '../src/vita-data';
 import { useVitaData } from '../src/use-vita-data';
@@ -823,7 +823,11 @@ function EatScreen({
   const [foodEstimate, setFoodEstimate] = useState<FoodPhotoEstimate | null>(null);
   const [foodPhotoUri, setFoodPhotoUri] = useState('');
   const [foodScanError, setFoodScanError] = useState('');
+  const [groqKey, setGroqKey] = useState(() =>
+    Platform.OS === 'web' ? window.localStorage.getItem('vita-groq-key') ?? '' : '',
+  );
   const [isScanningFood, setIsScanningFood] = useState(false);
+  const needsGroqKey = !hasGroqFoodApiKey();
 
   function addMeal() {
     const parsedCalories = Number(mealCalories);
@@ -886,7 +890,10 @@ function EatScreen({
     setFoodPhotoUri(asset.uri);
     setIsScanningFood(true);
     try {
-      setFoodEstimate(await estimateFoodPhoto(asset.base64));
+      if (needsGroqKey && Platform.OS === 'web') {
+        window.localStorage.setItem('vita-groq-key', groqKey.trim());
+      }
+      setFoodEstimate(await estimateFoodPhoto(asset.base64, groqKey));
     } catch (error) {
       setFoodScanError(error instanceof Error ? error.message : 'Food analysis failed.');
     } finally {
@@ -972,6 +979,24 @@ function EatScreen({
           <Text style={styles.photoActionSecondaryText}>Choose photo</Text>
         </Pressable>
       </View>
+      {needsGroqKey && (
+        <View style={styles.apiKeyCard}>
+          <Text style={styles.exerciseName}>Groq key for photo testing</Text>
+          <Text style={styles.mutedText}>
+            Stored only in this browser so it does not get published inside the PWA bundle.
+          </Text>
+          <TextInput
+            autoCapitalize="none"
+            autoCorrect={false}
+            onChangeText={setGroqKey}
+            placeholder="Paste Groq API key"
+            placeholderTextColor="#746D80"
+            secureTextEntry
+            style={styles.input}
+            value={groqKey}
+          />
+        </View>
+      )}
       {isScanningFood && (
         <View style={styles.analysisCard}>
           <ActivityIndicator color="#C084FC" />
@@ -1889,6 +1914,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 14,
     padding: 16,
+  },
+  apiKeyCard: {
+    backgroundColor: '#15111B',
+    borderColor: '#3A2C4D',
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 10,
+    padding: 15,
   },
   errorCard: {
     backgroundColor: '#211219',

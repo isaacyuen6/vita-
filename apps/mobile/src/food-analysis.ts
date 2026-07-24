@@ -24,6 +24,10 @@ export interface FoodPhotoEstimate {
 const groqApiKey = process.env.EXPO_PUBLIC_GROQ_API_KEY;
 const groqVisionModel = 'qwen/qwen3.6-27b';
 
+export function hasGroqFoodApiKey() {
+  return Boolean(groqApiKey);
+}
+
 function extractJson(text: string) {
   const trimmed = text.trim();
   if (trimmed.startsWith('{')) return trimmed;
@@ -57,9 +61,13 @@ function normalizeEstimate(raw: FoodPhotoEstimate): FoodPhotoEstimate {
   };
 }
 
-export async function estimateFoodPhoto(base64Image: string): Promise<FoodPhotoEstimate> {
-  if (!groqApiKey) {
-    throw new Error('Missing EXPO_PUBLIC_GROQ_API_KEY. Add it to your local environment before scanning meals.');
+export async function estimateFoodPhoto(
+  base64Image: string,
+  overrideApiKey?: string,
+): Promise<FoodPhotoEstimate> {
+  const apiKey = overrideApiKey?.trim() || groqApiKey;
+  if (!apiKey) {
+    throw new Error('Add a Groq API key before scanning meals.');
   }
 
   const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -86,7 +94,7 @@ export async function estimateFoodPhoto(base64Image: string): Promise<FoodPhotoE
       temperature: 0.2,
     }),
     headers: {
-      Authorization: `Bearer ${groqApiKey}`,
+      Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
     method: 'POST',
